@@ -1,0 +1,31 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+ // output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Occupation {
+  id                      Int     @id @default(autoincrement())
+  occupationId            String  @unique             // tu occupation_id del Excel
+  name                    String
+  anzscoCode              String  @map("anzsco_code")
+  skillAssessmentBody     String  @map("skill_assessment_body")
+  mltsslFlag              Boolean @map("mltssl_flag")
+  stsolFlag               Boolean @map("stsol_flag")
+  rolFlag                 Boolean @map("rol_flag")
+  subclass190             Boolean @map("190")
+  subclass189Pt           Boolean @map("189 (PT)")
+  subclass186             Boolean @map("186")
+  subclass491St           Boolean @map("491(S/T)")
+  subclass491F            Boolean @map("491 (F)")
+}
