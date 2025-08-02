@@ -26,22 +26,35 @@ export default function Home() {
   const handleChange = e =>
     setForm(prev => ({ ...prev, [e.target.id]: e.target.value }));
 
-  const handleSubmit = async e => {
-    e.preventDefault();
-    setError(null);
-    try {
-      const res = await fetch('/api/pathways', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
-      });
-      if (!res.ok) throw new Error(res.status);
-      const { pathways } = await res.json();
-      setPathways(pathways);
-    } catch {
-      setError('Error al calcular los pathways');
+// pages/index.js (solo la parte de handleSubmit)
+
+const handleSubmit = async e => {
+  e.preventDefault();
+  setError(null);
+  console.log('▶ Enviando formulario:', form);
+
+  try {
+    const res = await fetch('/api/pathways', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form)
+    });
+
+    // Siempre parseamos el JSON
+    const json = await res.json();
+
+    if (!res.ok) {
+      // Si el status no fue 2xx, lanzamos el error que vino en json.error
+      throw new Error(json.error || `HTTP ${res.status}`);
     }
-  };
+
+    setPathways(json.pathways);
+  } catch (err) {
+    console.error('Fetch Error:', err);
+    // Mostramos el mensaje real devuelto por la API
+    setError(err.message);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
@@ -119,16 +132,23 @@ export default function Home() {
           </button>
         </form>
         {error && <p className="mt-4 text-red-600">{error}</p>}
-        {pathways && (
+         {pathways && (
           <div className="mt-6">
             <h2 className="font-semibold mb-2">Pathways sugeridos:</h2>
-            <ul className="list-disc list-inside">
-              {pathways.map(p => (
-                <li key={p.code}>
-                  {p.code} – {p.description} (Requiere {p.requiredPoints} puntos)
-                </li>
-              ))}
-            </ul>
+            {pathways.length > 0 ? (
+              <ul className="list-disc list-inside">
+                {pathways.map(p => (
+                  <li key={p.code}>
+                    {p.code} – {p.description} (Requiere {p.requiredPoints} puntos)
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-600 italic">
+                No se encontraron pathways con tus datos.  
+                Verifica tu edad, nivel de inglés y ocupación.
+              </p>
+            )}
           </div>
         )}
       </div>
