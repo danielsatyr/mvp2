@@ -3,6 +3,12 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/": "pages/index.js",
-  "/api/occupations": "pages/api/occupations.js",
-  "/api/pathways": "pages/api/pathways.js"
+  "/api/me": "pages/api/me.js",
+  "/form": "pages/form.js",
+  "/api/logout": "pages/api/logout.js",
+  "/login": "pages/login.js",
+  "/signup": "pages/signup.js",
+  "/api/signup": "pages/api/signup.js",
+  "/api/login": "pages/api/login.js",
+  "/api/occupations": "pages/api/occupations.js"
 }
