@@ -2,7 +2,7 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/api/pathways": "pages/api/pathways.js",
+  "/": "pages/index.js",
   "/api/occupations": "pages/api/occupations.js",
-  "/": "pages/index.js"
+  "/api/pathways": "pages/api/pathways.js"
 }

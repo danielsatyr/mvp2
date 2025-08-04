@@ -7,7 +7,6 @@ export default async function handler(req, res) {
     res.setHeader('Allow', ['POST']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
-
   try {
     const formData    = req.body;
     const occupations = await getAllOccupations();
