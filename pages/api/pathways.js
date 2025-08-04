@@ -9,17 +9,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1) Leemos el body con los datos del formulario
-    const formData = req.body;
-
-    // 2) Traemos las ocupaciones de la base
+    const formData    = req.body;
     const occupations = await getAllOccupations();
-
-    // 3) Calculamos los pathways usando la lógica centralizada
-    const pathways = calculatePathways(formData, occupations);
-
-    // 4) Respondemos con el listado de pathways
-    return res.status(200).json({ pathways });
+    const result      = calculatePathways(formData, occupations);
+    return res.status(200).json(result);
   } catch (error) {
     console.error('🔥 API Error:', error);
     return res.status(500).json({ error: error.message });
