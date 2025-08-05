@@ -16,6 +16,7 @@ const AuthContext = createContext<AuthContextType>({
   refresh: async () => {}
 });
 
+// context/AuthContext.tsx (sólo el extracto relevante)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,9 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  useEffect(() => {
-    fetchMe();
-  }, []);
+  useEffect(() => {fetchMe();}, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, refresh: fetchMe }}>

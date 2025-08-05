@@ -20,6 +20,8 @@ model User {
   username  String   @unique
   password  String
   createdAt DateTime @default(now())
+  // Relación 1–1 con Profile
+  profile   Profile?
 }
 
 model Occupation {
@@ -36,4 +38,31 @@ model Occupation {
   subclass186             Boolean @map("186")
   subclass491St           Boolean @map("491(S/T)")
   subclass491F            Boolean @map("491 (F)")
+}
+
+model Profile {
+  id         Int      @id @default(autoincrement())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int      @unique
+
+  // Campos de formulario (ajusta nombres y tipos según tu caso)
+   age             Int
+  occupation      String
+  englishLevel    String
+  workExperience_in  Int
+  workExperience_out Int
+  nationality     String
+  education_qualification String
+  study_requirement String
+  regional_study    String
+  professional_year String
+  natti            String
+  partner          String
+  nomination_sponsorship String
+
+  // Score calculado
+  score           Int
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
