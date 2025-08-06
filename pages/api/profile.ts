@@ -3,11 +3,12 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import * as cookie from 'cookie';
 import jwt from 'jsonwebtoken';
+import { parse } from 'url';
 
 const prisma = new PrismaClient();
 
-// Claves exactas que envía el formulario
-type ProfilePayload = {
+// Payload form keys
+interface ProfilePayload {
   visaSubclass: '491' | '190' | '189';
   age: number;
   englishLevel: 'Competent' | 'Proficient' | 'Superior';
@@ -17,29 +18,29 @@ type ProfilePayload = {
   nationality?: string;
   education_qualification: 'doctorate' | 'bachelor' | 'diploma' | 'assessed' | 'none';
   specialistQualification?: 'master_research' | 'doctoral_research' | 'none';
-  study_requirement: 'yes' | 'no';           // Australian study requirement
-  natti: 'yes' | 'no';                       // Credentialed community language
-  regional_study: 'yes' | 'no';              // Study in regional Australia
-  professional_year: 'yes' | 'no';           // Professional Year
-  partner: 'meets_all' | 'competent_english' | 'single_or_au_partner';
-  nomination_sponsorship: 'state' | 'family' | 'none';
-};
+  study_requirement: 'yes' | 'no';
+  natti: 'yes' | 'no';
+  regional_study: 'yes' | 'no';
+  professional_year: 'yes' | 'no';
+  partnerSkill: 'meets_all' | 'competent_english' | 'single_or_au_partner';
+  nominationType: 'state' | 'family' | 'none';
+}
 
-// Estructura para calcular score (camelCase)
+// CamelCase for score calculations
 interface ScoreData {
-  visaSubclass: '491' | '190' | '189';
+  visaSubclass: ProfilePayload['visaSubclass'];
   age: number;
-  englishLevel: 'Competent' | 'Proficient' | 'Superior';
+  englishLevel: ProfilePayload['englishLevel'];
   workExperience_out: number;
   workExperience_in: number;
-  education_qualification: 'doctorate' | 'bachelor' | 'diploma' | 'assessed' | 'none';
-  specialistQualification?: 'master_research' | 'doctoral_research' | 'none';
-  australianStudy: 'yes' | 'no';
-  communityLanguage: 'yes' | 'no';
-  regionalStudy: 'yes' | 'no';
-  professionalYear: 'yes' | 'no';
-  partner: 'meets_all' | 'competent_english' | 'single_or_au_partner';
-  nominationSponsorship: 'state' | 'family' | 'none';
+  education_qualification: ProfilePayload['education_qualification'];
+  specialistQualification?: ProfilePayload['specialistQualification'];
+  australianStudy: ProfilePayload['study_requirement'];
+  communityLanguage: ProfilePayload['natti'];
+  regionalStudy: ProfilePayload['regional_study'];
+  professionalYear: ProfilePayload['professional_year'];
+  partnerSkill: ProfilePayload['partnerSkill'];
+  nominationType: ProfilePayload['nominationType'];
 }
 
 function calculateScore(data: ScoreData): number {
@@ -86,33 +87,76 @@ function calculateScore(data: ScoreData): number {
   // Professional Year
   if (data.professionalYear === 'yes') score += 5;
   // Partner skills
-  if (data.partner === 'meets_all' || data.partner === 'single_or_au_partner') score += 10;
-  else if (data.partner === 'competent_english') score += 5;
+  if (data.partnerSkill === 'meets_all' || data.partnerSkill === 'single_or_au_partner') score += 10;
+  else if (data.partnerSkill === 'competent_english') score += 5;
   // Nomination or sponsorship
-  if (data.nominationSponsorship === 'state' || data.nominationSponsorship === 'family') score += 15;
+  if (data.nominationType === 'state' || data.nominationType === 'family') score += 15;
   return score;
 }
 
+// Calculate breakdown per criterion
+function calculateBreakdown(data: ScoreData): Record<string, number> {
+  return {
+    visa: data.visaSubclass === '491' ? 15 : data.visaSubclass === '190' ? 5 : 0,
+    age: data.age < 25 ? 25 : data.age < 33 ? 30 : data.age < 40 ? 25 : data.age < 45 ? 15 : 0,
+    english: data.englishLevel === 'Superior' ? 20 : data.englishLevel === 'Proficient' ? 10 : 0,
+    workOutside: data.workExperience_out >= 8 ? 15 : data.workExperience_out >= 5 ? 10 : data.workExperience_out >= 3 ? 5 : 0,
+    workInside: data.workExperience_in >= 8 ? 20 : data.workExperience_in >= 5 ? 15 : data.workExperience_in >= 3 ? 10 : data.workExperience_in >= 1 ? 5 : 0,
+    education: data.education_qualification === 'doctorate' ? 20 : data.education_qualification === 'bachelor' ? 15 : data.education_qualification === 'diploma' ? 10 : data.education_qualification === 'assessed' ? 10 : 0,
+    specialist: data.specialistQualification && data.specialistQualification !== 'none' ? 10 : 0,
+    australianStudy: data.australianStudy === 'yes' ? 5 : 0,
+    communityLanguage: data.communityLanguage === 'yes' ? 5 : 0,
+    regionalStudy: data.regionalStudy === 'yes' ? 5 : 0,
+    professionalYear: data.professionalYear === 'yes' ? 5 : 0,
+    partner: data.partnerSkill === 'meets_all' || data.partnerSkill === 'single_or_au_partner' ? 10 : data.partnerSkill === 'competent_english' ? 5 : 0,
+    nomination: data.nominationType === 'state' || data.nominationType === 'family' ? 15 : 0,
+  };
+}
+
+// Main handler: routes /api/profile and /api/profile/breakdown
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const { pathname } = parse(req.url || '');
   const raw = req.headers.cookie || '';
   const { token } = cookie.parse(raw);
   if (!token) return res.status(401).json({ error: 'No autenticado' });
-
   let payload: any;
   try { payload = jwt.verify(token, process.env.JWT_SECRET!); }
   catch { return res.status(401).json({ error: 'Token inválido' }); }
-
   const userId = payload.userId as number;
 
-  if (req.method === 'GET') {
+ // GET /api/profile/breakdown
+  if (req.method === 'GET' && pathname === '/api/profile/breakdown') {
     const profileRaw = await prisma.profile.findUnique({ where: { userId } });
     if (!profileRaw) return res.status(404).json({ error: 'Perfil no encontrado' });
-    return res.status(200).json({ profile: profileRaw });
+    const scoreData: ScoreData = {
+      visaSubclass: profileRaw.visaSubclass as ScoreData['visaSubclass'],
+      age: profileRaw.age,
+      englishLevel: profileRaw.englishLevel as ScoreData['englishLevel'],
+      workExperience_out: profileRaw.workExperience_out,
+      workExperience_in: profileRaw.workExperience_in,
+      education_qualification: profileRaw.education_qualification as ScoreData['education_qualification'],
+      specialistQualification: profileRaw.specialistQualification as ScoreData['specialistQualification'],
+      australianStudy: profileRaw.study_requirement as ScoreData['australianStudy'],
+      communityLanguage: profileRaw.natti as ScoreData['communityLanguage'],
+      regionalStudy: profileRaw.regional_study as ScoreData['regionalStudy'],
+      professionalYear: profileRaw.professional_year as ScoreData['professionalYear'],
+      partnerSkill: profileRaw.partner as ScoreData['partnerSkill'],
+      nominationType: profileRaw.nomination_sponsorship as ScoreData['nominationType'],
+    };
+    const breakdown = calculateBreakdown(scoreData);
+    return res.status(200).json({ breakdown });
   }
 
-  if (req.method === 'POST') {
+  // GET /api/profile
+  if (req.method === 'GET' && pathname === '/api/profile') {
+    const profile = await prisma.profile.findUnique({ where: { userId } });
+    if (!profile) return res.status(404).json({ error: 'Perfil no encontrado' });
+    return res.status(200).json({ profile });
+  }
+
+  // POST /api/profile
+  if (req.method === 'POST' && pathname === '/api/profile') {
     const body = req.body as ProfilePayload;
-    // Datos para calcular
     const scoreData: ScoreData = {
       visaSubclass: body.visaSubclass,
       age: body.age,
@@ -125,12 +169,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       communityLanguage: body.natti,
       regionalStudy: body.regional_study,
       professionalYear: body.professional_year,
-      partner: body.partner,
-      nominationSponsorship: body.nomination_sponsorship
+      partnerSkill: body.partnerSkill,
+      nominationType: body.nominationType,
     };
     const score = calculateScore(scoreData);
-
-    // Payload DB (usando claves snake_case)
     const dbPayload = {
       age: body.age,
       occupation: body.occupation,
@@ -143,18 +185,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       regional_study: body.regional_study,
       professional_year: body.professional_year,
       natti: body.natti,
-      partner: body.partner,
-      nomination_sponsorship: body.nomination_sponsorship
+      // Asegurar valores por defecto si faltan en el payload
+      partner: body.partnerSkill ?? '',
+      nomination_sponsorship: body.nominationType ?? '',
     };
-
     const profile = await prisma.profile.upsert({
       where: { userId },
       create: { userId, ...dbPayload, score },
-      update: { ...dbPayload, score }
+      update: { ...dbPayload, score },
     });
     return res.status(200).json({ profile });
   }
 
-  res.setHeader('Allow', ['GET','POST']);
+  res.setHeader('Allow', ['GET', 'POST']);
   return res.status(405).end(`Method ${req.method} Not Allowed`);
 }
