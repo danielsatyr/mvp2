@@ -1,38 +1,41 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import bcrypt from 'bcrypt';
-import { PrismaClient, Prisma } from '@prisma/client';
+import type { NextApiRequest, NextApiResponse } from "next";
+import bcrypt from "bcrypt";
+import { PrismaClient, Prisma } from "@prisma/client";
 
 const prisma = new PrismaClient();
-const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
+const SALT_ROUNDS = parseInt(process.env.BCRYPT_SALT_ROUNDS || "10", 10);
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).json({ error: 'Método no permitido' });
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    return res.status(405).json({ error: "Método no permitido" });
   }
 
   const { name, username, password } = req.body;
 
   // 1. Validaciones básicas
   if (
-    typeof name !== 'string' ||
-    typeof username !== 'string' ||
-    typeof password !== 'string'
+    typeof name !== "string" ||
+    typeof username !== "string" ||
+    typeof password !== "string"
   ) {
-    return res.status(400).json({ error: 'Campos inválidos' });
+    return res.status(400).json({ error: "Campos inválidos" });
   }
   if (name.trim().length === 0) {
-    return res.status(400).json({ error: 'El nombre es obligatorio' });
+    return res.status(400).json({ error: "El nombre es obligatorio" });
   }
   if (username.length < 4) {
     return res
       .status(400)
-      .json({ error: 'El nombre de usuario debe tener al menos 4 caracteres' });
+      .json({ error: "El nombre de usuario debe tener al menos 4 caracteres" });
   }
   if (password.length < 8) {
     return res
       .status(400)
-      .json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+      .json({ error: "La contraseña debe tener al menos 8 caracteres" });
   }
 
   try {
@@ -55,19 +58,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // 4. Respuesta
-    return res.status(201).json({ message: 'Usuario creado', user });
+    return res.status(201).json({ message: "Usuario creado", user });
   } catch (error) {
     // 5. Manejo de errores
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2002'
+      error.code === "P2002"
     ) {
       // Unique constraint failed
-      return res
-        .status(409)
-        .json({ error: 'El nombre de usuario ya existe' });
+      return res.status(409).json({ error: "El nombre de usuario ya existe" });
     }
-    console.error('Error creando usuario:', error);
-    return res.status(500).json({ error: 'Error interno del servidor' });
+    console.error("Error creando usuario:", error);
+    return res.status(500).json({ error: "Error interno del servidor" });
   }
 }

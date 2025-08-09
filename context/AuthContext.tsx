@@ -1,5 +1,11 @@
 // context/AuthContext.tsx
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
 
 type User = { id: number; name: string; username: string };
 
@@ -13,7 +19,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  refresh: async () => {}
+  refresh: async () => {},
 });
 
 // context/AuthContext.tsx (sólo el extracto relevante)
@@ -23,8 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchMe = async () => {
     try {
-      const res = await fetch('/api/me');
-      if (!res.ok) throw new Error('No autenticado');
+      const res = await fetch("/api/me");
+      if (!res.ok) throw new Error("No autenticado");
       const { user } = await res.json();
       setUser(user);
     } catch {
@@ -34,7 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  useEffect(() => {fetchMe();}, []);
+  useEffect(() => {
+    fetchMe();
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, refresh: fetchMe }}>

@@ -20,3 +20,18 @@ export interface EligibilityResponse {
   visas: VisaFlags[];
   stateFactors: StateFactor[];
 }
+
+export type OccupationDetailResponse = {
+  id: number;
+  occupationId: string;
+  name: string;
+  anzscoCode: string;
+  skillAssessmentBody: string;
+  skillLevelRequired: string | null;
+  lists: {
+    mltssl: boolean;
+    stsol: boolean;
+    rol: boolean;
+  };
+  eligibleSubclasses: string[];
+};

@@ -1,6 +1,6 @@
 // pages/index.tsx
-import Link from 'next/link';
-import { useAuth } from '../context/AuthContext';
+import Link from "next/link";
+import { useAuth } from "../context/AuthContext";
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -22,8 +22,8 @@ export default function Home() {
         </h1>
         <p className="text-center text-gray-600 mb-8">
           {user
-            ? 'Accede a tu formulario de perfil migratorio.'
-            : 'Regístrate o inicia sesión para simular tus rutas de migración.'}
+            ? "Accede a tu formulario de perfil migratorio."
+            : "Regístrate o inicia sesión para simular tus rutas de migración."}
         </p>
 
         <div className="flex flex-col space-y-4">

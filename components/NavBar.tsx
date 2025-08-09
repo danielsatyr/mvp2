@@ -1,17 +1,17 @@
 // components/NavBar.tsx
-import Link from 'next/link';
-import { useAuth } from '../context/AuthContext';
-import { useRouter } from 'next/router';
+import Link from "next/link";
+import { useAuth } from "../context/AuthContext";
+import { useRouter } from "next/router";
 
 export default function NavBar() {
-  const { user, loading, refresh } = useAuth();  // 🔥 extraemos refresh
+  const { user, loading, refresh } = useAuth(); // 🔥 extraemos refresh
   const router = useRouter();
 
   const handleLogout = async () => {
-    await fetch('/api/logout', { method: 'POST' });
+    await fetch("/api/logout", { method: "POST" });
     // 🔥 refetch del estado de auth
     await refresh();
-    router.push('/login');
+    router.push("/login");
   };
 
   return (

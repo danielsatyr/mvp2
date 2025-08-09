@@ -1,33 +1,61 @@
 // components/ProfileForm.tsx
-import { useState, useEffect, FormEvent } from 'react';
-import { useRouter } from 'next/router';
-import { Profile as ProfileModel } from '@prisma/client';
+import { useState, useEffect, FormEvent } from "react";
+import { useRouter } from "next/router";
+import { Profile as ProfileModel } from "@prisma/client";
 
-interface ProfileFormProps {
-  initialProfile: ProfileModel | null;
-}
+//interface ProfileFormProps {
+//  initialProfile: ProfileModel | null;
+//}
 
 interface Occupation {
   occupationId: string;
   name: string;
 }
 
+export type ProfileFormProps = {
+  initialProfile: {
+    id: number;
+    userId: number;
+    visaSubclass: string;
+    age: number; // <-- añade esto
+    englishLevel: string;
+    education_qualification: string;
+    specialistQualification: string;
+    occupation: string;
+    workExperience_in: number;
+    workExperience_out: number;
+    nationality: string;
+    study_requirement: string;
+    regional_study: string;
+    professional_year: string;
+    natti: string;
+    partner: string;
+    nomination_sponsorship: string;
+    score: number;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+  userId?: number; // <-- hazlo opcional si no lo usas dentro
+};
+
+
+
 export default function ProfileForm({ initialProfile }: ProfileFormProps) {
   const router = useRouter();
 
   const [form, setForm] = useState({
-    edad: initialProfile?.age.toString() ?? '',
-    ingles: initialProfile?.englishLevel ?? '',
-    occupation: initialProfile?.occupation ?? '',
-    overseasExp: initialProfile?.workExperience_out.toString() ?? '',
-    australianExp: initialProfile?.workExperience_in.toString() ?? '',
-    eduQualification: initialProfile?.education_qualification ?? '',
-    australianStudy: initialProfile?.study_requirement ?? '',
-    regionalStudy: initialProfile?.regional_study ?? '',
-    professionalYear: initialProfile?.professional_year ?? '',
-    communityLanguage: initialProfile?.natti ?? '',
-    partnerSkill: initialProfile?.partner ?? '',
-    nominationType: initialProfile?.nomination_sponsorship ?? ''
+    edad: initialProfile?.age.toString() ?? "",
+    ingles: initialProfile?.englishLevel ?? "",
+    occupation: initialProfile?.occupation ?? "",
+    overseasExp: initialProfile?.workExperience_out.toString() ?? "",
+    australianExp: initialProfile?.workExperience_in.toString() ?? "",
+    eduQualification: initialProfile?.education_qualification ?? "",
+    australianStudy: initialProfile?.study_requirement ?? "",
+    regionalStudy: initialProfile?.regional_study ?? "",
+    professionalYear: initialProfile?.professional_year ?? "",
+    communityLanguage: initialProfile?.natti ?? "",
+    partnerSkill: initialProfile?.partner ?? "",
+    nominationType: initialProfile?.nomination_sponsorship ?? "",
   });
 
   const [occupations, setOccupations] = useState<Occupation[]>([]);
@@ -37,16 +65,18 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch('/api/occupations')
-      .then(res => res.ok ? res.json() : Promise.reject(res.status))
-      .then(data => setOccupations(data))
-      .catch(err => setErrorOcc(String(err)))
+    fetch("/api/occupations")
+      .then((res) => (res.ok ? res.json() : Promise.reject(res.status)))
+      .then((data) => setOccupations(data))
+      .catch((err) => setErrorOcc(String(err)))
       .finally(() => setLoadingOcc(false));
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     const { id, value } = e.target;
-    setForm(prev => ({ ...prev, [id]: value }));
+    setForm((prev) => ({ ...prev, [id]: value }));
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -60,26 +90,26 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
         englishLevel: form.ingles,
         workExperience_in: Number(form.australianExp),
         workExperience_out: Number(form.overseasExp),
-        nationality: '',
+        nationality: "",
         education_qualification: form.eduQualification,
         study_requirement: form.australianStudy,
         regional_study: form.regionalStudy,
         professional_year: form.professionalYear,
         natti: form.communityLanguage,
         partner: form.partnerSkill,
-        nomination_sponsorship: form.nominationType
+        nomination_sponsorship: form.nominationType,
       };
-      const res = await fetch('/api/profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      const res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const errorText = await res.text();
         throw new Error(errorText);
       }
       await res.json();
-      router.push('/dashboard');
+      router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -91,12 +121,14 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <h1 className="text-2xl font-bold mb-4 text-center">
-          {initialProfile ? 'Modificar perfil' : 'Evaluación de elegibilidad'}
+          {initialProfile ? "Modificar perfil" : "Evaluación de elegibilidad"}
         </h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Edad */}
           <div>
-            <label htmlFor="edad" className="block font-medium">Edad</label>
+            <label htmlFor="edad" className="block font-medium">
+              Edad
+            </label>
             <input
               id="edad"
               type="number"
@@ -109,7 +141,9 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
           </div>
           {/* Nivel de inglés */}
           <div>
-            <label htmlFor="ingles" className="block font-medium">Nivel de inglés</label>
+            <label htmlFor="ingles" className="block font-medium">
+              Nivel de inglés
+            </label>
             <select
               id="ingles"
               value={form.ingles}
@@ -125,7 +159,9 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
           </div>
           {/* Ocupación */}
           <div>
-            <label htmlFor="occupation" className="block font-medium">Ocupación (ANZSCO Code)</label>
+            <label htmlFor="occupation" className="block font-medium">
+              Ocupación (ANZSCO Code)
+            </label>
             {loadingOcc ? (
               <p>Cargando...</p>
             ) : errorOcc ? (
@@ -139,7 +175,7 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
                 required
               >
                 <option value="">-- Selecciona --</option>
-                {occupations.map(o => (
+                {occupations.map((o) => (
                   <option key={o.occupationId} value={o.occupationId}>
                     {o.occupationId} – {o.name}
                   </option>
@@ -149,7 +185,9 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
           </div>
           {/* Experiencia fuera de AU */}
           <div>
-            <label htmlFor="overseasExp" className="block font-medium">Años experiencia fuera de Australia</label>
+            <label htmlFor="overseasExp" className="block font-medium">
+              Años experiencia fuera de Australia
+            </label>
             <input
               id="overseasExp"
               type="number"
@@ -162,7 +200,9 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
           </div>
           {/* Experiencia en AU */}
           <div>
-            <label htmlFor="australianExp" className="block font-medium">Años experiencia en Australia</label>
+            <label htmlFor="australianExp" className="block font-medium">
+              Años experiencia en Australia
+            </label>
             <input
               id="australianExp"
               type="number"
@@ -175,7 +215,9 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
           </div>
           {/* Calificación educativa */}
           <div>
-            <label htmlFor="eduQualification" className="block font-medium">Educational qualifications</label>
+            <label htmlFor="eduQualification" className="block font-medium">
+              Educational qualifications
+            </label>
             <select
               id="eduQualification"
               value={form.eduQualification}
@@ -187,13 +229,17 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
               <option value="doctorate">Doctorate (20 points)</option>
               <option value="bachelor">Bachelor (15 points)</option>
               <option value="diploma">Diploma (10 points)</option>
-              <option value="assessed">Assessed qualification (10 points)</option>
+              <option value="assessed">
+                Assessed qualification (10 points)
+              </option>
               <option value="none">No recognised (0 points)</option>
             </select>
           </div>
           {/* Requisito de estudios en AU */}
           <div>
-            <label htmlFor="australianStudy" className="block font-medium">Australian study requirement met?</label>
+            <label htmlFor="australianStudy" className="block font-medium">
+              Australian study requirement met?
+            </label>
             <select
               id="australianStudy"
               value={form.australianStudy}
@@ -206,9 +252,11 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
               <option value="no">No (0 points)</option>
             </select>
           </div>
-           {/* Estudio regional */}
+          {/* Estudio regional */}
           <div>
-            <label htmlFor="regionalStudy" className="block font-medium">Study in regional Australia?</label>
+            <label htmlFor="regionalStudy" className="block font-medium">
+              Study in regional Australia?
+            </label>
             <select
               id="regionalStudy"
               value={form.regionalStudy}
@@ -224,7 +272,9 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
 
           {/* Año profesional */}
           <div>
-            <label htmlFor="professionalYear" className="block font-medium">Professional Year in Australia?</label>
+            <label htmlFor="professionalYear" className="block font-medium">
+              Professional Year in Australia?
+            </label>
             <select
               id="professionalYear"
               value={form.professionalYear}
@@ -240,7 +290,9 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
 
           {/* Idioma comunitario */}
           <div>
-            <label htmlFor="communityLanguage" className="block font-medium">Credentialed community language?</label>
+            <label htmlFor="communityLanguage" className="block font-medium">
+              Credentialed community language?
+            </label>
             <select
               id="communityLanguage"
               value={form.communityLanguage}
@@ -254,9 +306,11 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
             </select>
           </div>
 
-         {/* Partner skills */}
+          {/* Partner skills */}
           <div>
-            <label htmlFor="partnerSkill" className="block font-medium">Partner skills</label>
+            <label htmlFor="partnerSkill" className="block font-medium">
+              Partner skills
+            </label>
             <select
               id="partnerSkill"
               value={form.partnerSkill}
@@ -265,15 +319,23 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
               required
             >
               <option value="">-- Selecciona --</option>
-              <option value="meets_all">Your partner meets all DOHA criteria (10 points)</option>
-              <option value="competent_ English">Your partner has at least competent english (5 points)</option>
-              <option value="single_or_au_partner">You are single or AU_partner (10 points)</option>
+              <option value="meets_all">
+                Your partner meets all DOHA criteria (10 points)
+              </option>
+              <option value="competent_ English">
+                Your partner has at least competent english (5 points)
+              </option>
+              <option value="single_or_au_partner">
+                You are single or AU_partner (10 points)
+              </option>
             </select>
           </div>
 
           {/* Nominación/Patrocinio */}
           <div>
-            <label htmlFor="nominationType" className="block font-medium">Nomination or sponsorship</label>
+            <label htmlFor="nominationType" className="block font-medium">
+              Nomination or sponsorship
+            </label>
             <select
               id="nominationType"
               value={form.nominationType}
@@ -282,8 +344,12 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
               required
             >
               <option value="">-- Selecciona --</option>
-              <option value="state">Invited by State/Territory (15 points)</option>
-              <option value="family">Family sponsorship accepted (15 points)</option>
+              <option value="state">
+                Invited by State/Territory (15 points)
+              </option>
+              <option value="family">
+                Family sponsorship accepted (15 points)
+              </option>
               <option value="none">No (0 points)</option>
             </select>
           </div>
@@ -293,12 +359,18 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
             disabled={loading}
             className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition disabled:opacity-50"
           >
-            {loading ? 'Guardando...' : initialProfile ? 'Actualizar perfil' : 'Calcular'}
+            {loading
+              ? "Guardando..."
+              : initialProfile
+                ? "Actualizar perfil"
+                : "Calcular"}
           </button>
         </form>
 
         {/* Error global */}
-        {errorOcc && <p className="mt-4 text-red-600">Error ocupaciones: {errorOcc}</p>}
+        {errorOcc && (
+          <p className="mt-4 text-red-600">Error ocupaciones: {errorOcc}</p>
+        )}
         {error && <p className="mt-4 text-red-600">{error}</p>}
       </div>
     </div>

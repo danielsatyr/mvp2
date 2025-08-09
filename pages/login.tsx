@@ -1,13 +1,13 @@
 // pages/login.tsx
-import { useState } from 'react';
-import { useRouter } from 'next/router';
-import { useAuth } from '../context/AuthContext';  // 🔥 importamos useAuth
+import { useState } from "react";
+import { useRouter } from "next/router";
+import { useAuth } from "../context/AuthContext"; // 🔥 importamos useAuth
 
 export default function LoginPage() {
   const router = useRouter();
-  const { refresh } = useAuth();                   // 🔥 extraemos refresh
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const { refresh } = useAuth(); // 🔥 extraemos refresh
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -16,27 +16,27 @@ export default function LoginPage() {
     setError(null);
 
     if (username.trim().length < 4) {
-      return setError('El usuario debe tener al menos 4 caracteres');
+      return setError("El usuario debe tener al menos 4 caracteres");
     }
     if (password.length < 8) {
-      return setError('La contraseña debe tener al menos 8 caracteres');
+      return setError("La contraseña debe tener al menos 8 caracteres");
     }
 
     setLoading(true);
     try {
-      const res = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || 'Error al iniciar sesión');
+        throw new Error(data.error || "Error al iniciar sesión");
       }
 
       // 🔥 Forzamos el refetch del usuario antes de redirigir
       await refresh();
-      router.push('/form');
+      router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -56,7 +56,7 @@ export default function LoginPage() {
           <input
             type="text"
             value={username}
-            onChange={e => setUsername(e.target.value)}
+            onChange={(e) => setUsername(e.target.value)}
             className="w-full border px-3 py-2 rounded"
           />
         </div>
@@ -65,7 +65,7 @@ export default function LoginPage() {
           <input
             type="password"
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             className="w-full border px-3 py-2 rounded"
           />
         </div>
@@ -74,7 +74,7 @@ export default function LoginPage() {
           disabled={loading}
           className="w-full py-2 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          {loading ? 'Validando...' : 'Entrar'}
+          {loading ? "Validando..." : "Entrar"}
         </button>
       </form>
     </div>
