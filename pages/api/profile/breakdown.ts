@@ -1,142 +1,148 @@
 // pages/api/profile/breakdown.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
 import * as cookie from "cookie";
 import jwt from "jsonwebtoken";
+import { prisma } from "@/lib/prisma";
 
-const prisma = new PrismaClient();
+type JwtPayload = { userId: number };
 
-// Repite la definición de ScoreData y calculateBreakdown de tu perfil API
-interface ScoreData {
-  visaSubclass: "491" | "190" | "189";
+function getUserId(req: NextApiRequest): number | null {
+  try {
+    const raw = req.headers.cookie || "";
+    const { token } = cookie.parse(raw);
+    if (!token) return null;
+    const payload = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+    return payload.userId ?? null;
+  } catch {
+    return null;
+  }
+}
+
+type VisaSubclass = "491" | "190" | "189";
+type EnglishLevel = "Competent" | "Proficient" | "Superior";
+
+interface ProfilePayload {
+  visaSubclass: VisaSubclass;
   age: number;
-  englishLevel: "Competent" | "Proficient" | "Superior";
+  englishLevel: EnglishLevel;
   workExperience_out: number;
   workExperience_in: number;
-  education_qualification:
-    | "doctorate"
-    | "bachelor"
-    | "diploma"
-    | "assessed"
-    | "none";
-  specialistQualification?: "master_research" | "doctoral_research" | "none";
-  australianStudy: "yes" | "no";
-  communityLanguage: "yes" | "no";
-  regionalStudy: "yes" | "no";
-  professionalYear: "yes" | "no";
-  partnerSkill: "meets_all" | "competent_english" | "single_or_au_partner";
-  nominationType: "state" | "family" | "none";
+  education_qualification: string;
+  specialistQualification?: string;
+  australianStudy?: boolean;
+  communityLanguage?: boolean;
+  regionalStudy?: boolean;
+  professionalYear?: boolean;
+  partnerSkill?: string;
+  nominationType?: string;
 }
 
-function calculateBreakdown(data: ScoreData): Record<string, number> {
-  return {
-    visa:
-      data.visaSubclass === "491" ? 15 : data.visaSubclass === "190" ? 5 : 0,
-    age:
-      data.age < 25
-        ? 25
-        : data.age < 33
-          ? 30
-          : data.age < 40
-            ? 25
-            : data.age < 45
-              ? 15
-              : 0,
-    english:
-      data.englishLevel === "Superior"
-        ? 20
-        : data.englishLevel === "Proficient"
-          ? 10
-          : 0,
-    workOutside:
-      data.workExperience_out >= 8
-        ? 15
-        : data.workExperience_out >= 5
-          ? 10
-          : data.workExperience_out >= 3
-            ? 5
-            : 0,
-    workInside:
-      data.workExperience_in >= 8
-        ? 20
-        : data.workExperience_in >= 5
-          ? 15
-          : data.workExperience_in >= 3
-            ? 10
-            : data.workExperience_in >= 1
-              ? 5
-              : 0,
-    education:
-      data.education_qualification === "doctorate"
-        ? 20
-        : data.education_qualification === "bachelor"
-          ? 15
-          : data.education_qualification === "diploma"
-            ? 10
-            : data.education_qualification === "assessed"
-              ? 10
-              : 0,
-    specialist:
-      data.specialistQualification && data.specialistQualification !== "none"
-        ? 10
-        : 0,
-    australianStudy: data.australianStudy === "yes" ? 5 : 0,
-    communityLanguage: data.communityLanguage === "yes" ? 5 : 0,
-    regionalStudy: data.regionalStudy === "yes" ? 5 : 0,
-    professionalYear: data.professionalYear === "yes" ? 5 : 0,
-    partner:
-      data.partnerSkill === "meets_all" ||
-      data.partnerSkill === "single_or_au_partner"
-        ? 10
-        : data.partnerSkill === "competent_english"
-          ? 5
-          : 0,
-    nomination:
-      data.nominationType === "state" || data.nominationType === "family"
-        ? 15
-        : 0,
+type Breakdown = {
+  visa: number;
+  age: number;
+  english: number;
+  workOutside: number;
+  workInside: number;
+  education: number;
+  specialist: number;
+  australianStudy: number;
+  communityLanguage: number;
+  regionalStudy: number;
+  professionalYear: number;
+  partner: number;
+  nomination: number;
+};
+
+function computeBreakdown(p: ProfilePayload): { breakdown: Breakdown; score: number } {
+  const b: Breakdown = {
+    visa: 0, age: 0, english: 0, workOutside: 0, workInside: 0,
+    education: 0, specialist: 0, australianStudy: 0, communityLanguage: 0,
+    regionalStudy: 0, professionalYear: 0, partner: 0, nomination: 0,
   };
-}
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
-  // 1) Autenticar igual que en profile.ts
-  const raw = req.headers.cookie || "";
-  const { token } = cookie.parse(raw);
-  if (!token) return res.status(401).json({ error: "No autenticado" });
-  let payload: any;
-  try {
-    payload = jwt.verify(token, process.env.JWT_SECRET!);
-  } catch {
-    return res.status(401).json({ error: "Token inválido" });
+  if (p.visaSubclass === "491") b.visa = 15;
+  if (p.visaSubclass === "190") b.visa = 5;
+
+  if (p.age < 25) b.age = 25;
+  else if (p.age < 33) b.age = 30;
+  else if (p.age < 40) b.age = 25;
+  else if (p.age < 45) b.age = 15;
+
+  if (p.englishLevel === "Proficient") b.english = 10;
+  else if (p.englishLevel === "Superior") b.english = 20;
+
+  if (p.workExperience_out >= 8) b.workOutside = 15;
+  else if (p.workExperience_out >= 5) b.workOutside = 10;
+  else if (p.workExperience_out >= 3) b.workOutside = 5;
+
+  if (p.workExperience_in >= 8) b.workInside = 20;
+  else if (p.workExperience_in >= 5) b.workInside = 15;
+  else if (p.workExperience_in >= 3) b.workInside = 10;
+  else if (p.workExperience_in >= 1) b.workInside = 5;
+
+  const edu = (p.education_qualification || "").toLowerCase();
+  if (edu.includes("phd") || edu.includes("doctor")) b.education = 20;
+  else if (edu.includes("master")) b.education = 15;
+  else if (edu.includes("bachelor") || edu.includes("degree")) b.education = 15;
+
+  if (p.australianStudy) b.australianStudy = 5;
+  if (p.communityLanguage) b.communityLanguage = 5;
+  if (p.regionalStudy) b.regionalStudy = 5;
+  if (p.professionalYear) b.professionalYear = 5;
+
+  switch (p.partnerSkill) {
+    case "skill+english": b.partner = 10; break;
+    case "competentEnglish": b.partner = 5; break;
+    case "singleOrCitizenPR": b.partner = 10; break;
   }
-  const userId = payload.userId as number;
+  switch (p.nominationType) {
+    case "state": b.nomination = 15; break;
+    case "family": b.nomination = 15; break;
+  }
 
-  // 2) Leer perfil
-  const profileRaw = await prisma.profile.findUnique({ where: { userId } });
-  if (!profileRaw)
-    return res.status(404).json({ error: "Perfil no encontrado" });
+  const score = Object.values(b).reduce((a, n) => a + n, 0);
+  return { breakdown: b, score };
+}
 
-  // 3) Mapear a ScoreData
-  const scoreData: ScoreData = {
-    visaSubclass: profileRaw.visaSubclass as any,
-    age: profileRaw.age,
-    englishLevel: profileRaw.englishLevel as any,
-    workExperience_out: profileRaw.workExperience_out,
-    workExperience_in: profileRaw.workExperience_in,
-    education_qualification: profileRaw.education_qualification as any,
-    specialistQualification: profileRaw.specialistQualification as any,
-    australianStudy: profileRaw.study_requirement as any,
-    communityLanguage: profileRaw.natti as any,
-    regionalStudy: profileRaw.regional_study as any,
-    professionalYear: profileRaw.professional_year as any,
-    partnerSkill: profileRaw.partner as any,
-    nominationType: profileRaw.nomination_sponsorship as any,
-  };
+const toBool = (v: any) => v === true || v === "Yes" || v === "yes" || v === "1";
 
-  // 4) Calcular y devolver breakdown
-  const breakdown = calculateBreakdown(scoreData);
-  return res.status(200).json({ breakdown });
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+  try {
+    const profile = await prisma.profile.findUnique({ where: { userId } });
+    if (!profile) {
+      // Devuelve todo en 0 si no hay perfil aún
+      const empty: Breakdown = {
+        visa: 0, age: 0, english: 0, workOutside: 0, workInside: 0,
+        education: 0, specialist: 0, australianStudy: 0, communityLanguage: 0,
+        regionalStudy: 0, professionalYear: 0, partner: 0, nomination: 0,
+      };
+      return res.status(200).json({ breakdown: empty, score: 0 });
+    }
+
+    // Mapeo DB → payload de cálculo
+    const payload: ProfilePayload = {
+      visaSubclass: (profile as any).visaSubclass ?? "189",
+      age: Number((profile as any).age ?? 0),
+      englishLevel: (profile as any).englishLevel ?? "Competent",
+      workExperience_out: Number((profile as any).workExperience_out ?? 0),
+      workExperience_in: Number((profile as any).workExperience_in ?? 0),
+      education_qualification: (profile as any).education_qualification ?? "",
+      specialistQualification: (profile as any).specialistQualification ?? "",
+      australianStudy: toBool((profile as any).study_requirement),
+      communityLanguage: toBool((profile as any).natti),
+      regionalStudy: toBool((profile as any).regional_study),
+      professionalYear: toBool((profile as any).professional_year),
+      partnerSkill: (profile as any).partner ?? "",
+      nominationType: (profile as any).nomination_sponsorship ?? "",
+    };
+
+    const { breakdown, score } = computeBreakdown(payload);
+    return res.status(200).json({ breakdown, score });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
 }

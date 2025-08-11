@@ -6,42 +6,26 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
-  // Sólo GET
-  if (req.method !== "GET") {
-    res.setHeader("Allow", "GET");
-    return res.status(405).end();
-  }
+type JwtPayload = { userId: number };
 
-  // Parsear cookie
-  const raw = req.headers.cookie || "";
-  const { token } = cookie.parse(raw);
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  try {
+    const raw = req.headers.cookie || "";
+    const { token } = cookie.parse(raw);
+    if (!token) return res.status(401).json({ error: "No autenticado" });
 
-  if (!token) {
+    const payload = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
+    const userId = payload.userId;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, username: true },
+    });
+
+    if (!user) return res.status(401).json({ error: "No autenticado" });
+
+    return res.status(200).json({ user });
+  } catch (err) {
     return res.status(401).json({ error: "No autenticado" });
   }
-
-  // Verificar JWT
-  let payload: any;
-  try {
-    payload = jwt.verify(token, process.env.JWT_SECRET!);
-  } catch {
-    return res.status(401).json({ error: "Token inválido o expirado" });
-  }
-
-  // Buscar usuario
-  const user = await prisma.user.findUnique({
-    where: { id: payload.userId },
-    select: { id: true, name: true, username: true },
-  });
-
-  if (!user) {
-    return res.status(401).json({ error: "Usuario no encontrado" });
-  }
-
-  // Devolver datos de usuario
-  return res.status(200).json({ user });
 }

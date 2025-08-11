@@ -36,8 +36,11 @@
     "next-env.d.ts",
     "scripts/validate-mapping.js",
     ".next/types/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+, "archive/dashboard.tsx" 
+ ],
+  
+"exclude": 
+["node_modules", 
+".next", 
+"archive"]
 }

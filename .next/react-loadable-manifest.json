@@ -10,5 +10,11 @@
     "files": [
       "static/chunks/_pages-dir-browser_node_modules_next_dist_pages__error_js.js"
     ]
+  },
+  "pages\\dashboard.tsx -> @/components/DecisionDiagram": {
+    "id": "pages\\dashboard.tsx -> @/components/DecisionDiagram",
+    "files": [
+      "static/chunks/_pages-dir-browser_components_DecisionDiagram_tsx.js"
+    ]
   }
 }

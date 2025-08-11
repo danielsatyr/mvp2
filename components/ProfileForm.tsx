@@ -3,41 +3,14 @@ import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/router";
 import { Profile as ProfileModel } from "@prisma/client";
 
-//interface ProfileFormProps {
-//  initialProfile: ProfileModel | null;
-//}
-
 interface Occupation {
   occupationId: string;
   name: string;
 }
 
 export type ProfileFormProps = {
-  initialProfile: {
-    id: number;
-    userId: number;
-    visaSubclass: string;
-    age: number; // <-- añade esto
-    englishLevel: string;
-    education_qualification: string;
-    specialistQualification: string;
-    occupation: string;
-    workExperience_in: number;
-    workExperience_out: number;
-    nationality: string;
-    study_requirement: string;
-    regional_study: string;
-    professional_year: string;
-    natti: string;
-    partner: string;
-    nomination_sponsorship: string;
-    score: number;
-    createdAt: Date;
-    updatedAt: Date;
-  };
-  userId?: number; // <-- hazlo opcional si no lo usas dentro
+  initialProfile: ProfileModel | null;
 };
-
 
 
 export default function ProfileForm({ initialProfile }: ProfileFormProps) {
@@ -322,7 +295,7 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
               <option value="meets_all">
                 Your partner meets all DOHA criteria (10 points)
               </option>
-              <option value="competent_ English">
+              <option value="competent_english">
                 Your partner has at least competent english (5 points)
               </option>
               <option value="single_or_au_partner">

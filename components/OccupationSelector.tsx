@@ -36,11 +36,11 @@ export function OccupationSelector({
       <option value="" disabled>
         Select occupation
       </option>
-      {data.map((occ) => (
-        <option key={occ.occupationId} value={occ.occupationId}>
-          {occ.name}
-        </option>
-      ))}
+      {(data ?? []).map((occ) => (
+      <option key={occ.occupationId} value={occ.occupationId}>
+        {occ.name}
+      </option>
+    ))}
     </select>
   );
 }

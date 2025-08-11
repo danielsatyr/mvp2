@@ -1,29 +1,27 @@
 // pages/dashboard.tsx
-import { GetServerSideProps } from "next";
+import React, { useState } from "react";
+import Link from "next/link";
+import dynamic from "next/dynamic";
+import {
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+} from "recharts";
+import type { GetServerSideProps } from "next";
 import * as cookie from "cookie";
 import jwt from "jsonwebtoken";
-import { PrismaClient, Profile } from "@prisma/client";
-import Link from "next/link";
-import {
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-} from "recharts";
-import { useEffect, useState } from "react";
+import { prisma } from "@/lib/prisma";
+
+import { useDecisionGraph } from "@/features/decision-graph/hooks/useDecisionGraph";
+// Ajusta esta ruta si tu mock está en otra carpeta:
 import DecisionDiagramMock from "@/components/DecisionDiagramMock";
-import DecisionDiagram from "@/features/decision-graph/ui/DecisionDiagram";
-import { useRouter } from "next/router";
 
-
-
-
-const prisma = new PrismaClient();
+// Cargamos el diagrama real sin SSR para evitar problemas con GoJS
+const DecisionDiagram = dynamic(() => import("@/components/DecisionDiagram"), {
+  ssr: false,
+});
 
 interface DashboardProps {
   userName: string;
-  profile: Profile;
+  profile: any; // si prefieres, tipa este objeto con tu interfaz real
   breakdown: Record<string, number>;
 }
 
@@ -32,271 +30,248 @@ export default function Dashboard({
   profile,
   breakdown,
 }: DashboardProps) {
+  // Permite alternar entre demo y diagrama real vía ?demo=1
+  const [showMock, setShowMock] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      return url.searchParams.get("demo") === "1";
+    }
+    return false;
+  });
 
-  const router = useRouter();
-const [showMock, setShowMock] = useState<boolean>(() => {
-  // Si entras al dashboard con ?demo=1 arranca mostrando el mock
-  if (typeof window !== "undefined") {
-    const url = new URL(window.location.href);
-    return url.searchParams.get("demo") === "1";
-  }
-  return false;
-});
+  // Hook que orquesta datos → grafo (raíz + ocupación + visas)
+  const { nodes, links, isLoading, error, refresh } = useDecisionGraph();
 
-  console.log("BREAKDOWN:", breakdown);
-
-  // 1) Hooks: deben ir dentro del cuerpo del componente
-  const [nodeDataArray, setNodeDataArray] = useState<any[]>([]);
-  const [linkDataArray, setLinkDataArray] = useState<any[]>([]);
-  const [loadingTree, setLoadingTree] = useState(true);
-  const [treeError, setTreeError] = useState<string | null>(null);
-
-  // 2) Transformar breakdown para el RadarChart
-  const data = Object.entries(breakdown).map(([subject, value]) => ({
+  // Datos para el gráfico radial (desde el breakdown que recibes por props)
+  const radarData = Object.entries(breakdown ?? {}).map(([subject, value]) => ({
     subject,
     value,
   }));
-
-  // 3) Cargar el diagrama desde /api/decision-tree pasando los puntos
-  useEffect(() => {
-  let abort = false;
-
-  async function loadTree() {
-    try {
-      setLoadingTree(true);
-      setTreeError(null);
-
-      const res = await fetch(`/api/decision-tree?points=${encodeURIComponent(profile.score ?? 0)}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-const payload = await res.json();
-      console.log("UI payload recibido:", payload);
-
- const nodes = payload.nodeDataArray ?? payload.nodes ?? [];
-const rootNode = nodes.find((n: any) => n.key === "Start");
-      console.log("UI rootNode:", rootNode);
-
-
-
-
-const fixedNodes = nodes.map((n: any) => {
-  if (n.key === "Start") {
-    // Si por alguna razón se perdió tooltipHtml, lo reponemos
-    return {
-      ...n,
-      tooltipHtml:
-        n.tooltipHtml ??
-        `
-        <div style="font-weight:600;margin-bottom:4px;">Resumen</div>
-        <div>Este es tu puntaje total calculado con base en tu formulario.</div>
-        <ul style="margin:6px 0 0 18px;padding:0;">
-          <li>Edad, Inglés, Educación, Experiencia</li>
-          <li>Bonos: NAATI, PY, Estudio Regional</li>
-        </ul>
-        `,
-    };
-  }
-  return n;
-});
-
-
-
-      if (!abort) {
-setNodeDataArray(fixedNodes);
-console.log("UI fixed root:", fixedNodes.find((n:any)=>n.key==="Start"));
-
-        setLinkDataArray(payload.linkDataArray ?? payload.links ?? []);
-      }
-    } catch (err: any) {
-      if (!abort) setTreeError(err.message ?? "Error cargando diagrama");
-    } finally {
-      if (!abort) setLoadingTree(false);
-    }
-  }
-
-  loadTree();
-  return () => { abort = true; };
-}, [profile.score]);
-
 
   return (
     <div className="max-w-4xl mx-auto mt-8 space-y-6">
       {/* Cabecera */}
       <header className="flex justify-between items-center">
         <h1 className="text-3xl font-semibold">Hola, {userName}</h1>
-        <Link
-          href="/form"
-          className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-        >
-          Modificar perfil
-        </Link>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => refresh()}
+            className="px-3 py-2 rounded bg-white border hover:bg-gray-50"
+            title="Refrescar datos del diagrama"
+          >
+            Refresh
+          </button>
+          <Link
+            href="/form"
+            className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+          >
+            Modificar perfil
+          </Link>
+        </div>
       </header>
 
       {/* Score y detalles */}
       <section className="bg-white p-6 rounded shadow space-y-4">
-        <h2 className="text-2xl">Tu puntuación: {profile.score} puntos</h2>
+        <h2 className="text-2xl">Tu puntuación: {profile?.score} puntos</h2>
         <ul className="grid grid-cols-2 gap-4">
-          <li><strong>Visado:</strong> {profile.visaSubclass || "N/D"}</li>
-          <li><strong>Ocupación ANZSCO:</strong> {profile.occupation}</li>
-          <li><strong>Edad:</strong> {profile.age}</li>
-          <li><strong>Experiencia AU:</strong> {profile.workExperience_in} años</li>
-          <li><strong>Experiencia fuera AU:</strong> {profile.workExperience_out} años</li>
-          <li><strong>Inglés:</strong> {profile.englishLevel}</li>
-          <li><strong>Educación:</strong> {profile.education_qualification}</li>
-          <li><strong>Requisito de estudio AU:</strong> {profile.study_requirement || "No"}</li>
-          <li><strong>Estudio regional AU:</strong> {profile.regional_study || "No"}</li>
-          <li><strong>Professional Year:</strong> {profile.professional_year || "No"}</li>
-          <li><strong>Idioma comunitario:</strong> {profile.natti || "No"}</li>
-          <li><strong>Partner skills:</strong> {profile.partner || "No aplica"}</li>
-          <li><strong>Nominación/Patrocinio:</strong> {profile.nomination_sponsorship || "No"}</li>
+          <li><strong>Visado:</strong> {profile?.visaSubclass || "N/D"}</li>
+          <li><strong>Ocupación ANZSCO:</strong> {profile?.occupation}</li>
+          <li><strong>Edad:</strong> {profile?.age}</li>
+          <li><strong>Experiencia AU:</strong> {profile?.workExperience_in} años</li>
+          <li><strong>Experiencia fuera AU:</strong> {profile?.workExperience_out} años</li>
+          <li><strong>Inglés:</strong> {profile?.englishLevel}</li>
+          <li><strong>Educación:</strong> {profile?.education_qualification}</li>
+          <li><strong>Requisito de estudio AU:</strong> {profile?.study_requirement || "No"}</li>
+          <li><strong>Estudio regional AU:</strong> {profile?.regional_study || "No"}</li>
+          <li><strong>Professional Year:</strong> {profile?.professional_year || "No"}</li>
+          <li><strong>Idioma comunitario:</strong> {profile?.natti || "No"}</li>
+          <li><strong>Partner skills:</strong> {profile?.partner || "No aplica"}</li>
+          <li><strong>Nominación/Patrocinio:</strong> {profile?.nomination_sponsorship || "No"}</li>
         </ul>
       </section>
 
       {/* Gráfico radial */}
       <section className="bg-white p-6 rounded shadow">
         <h3 className="text-xl mb-4">Fortalezas y Debilidades</h3>
-        <RadarChart cx="50%" cy="50%" outerRadius="80%" width={400} height={400} data={data}>
-          <PolarGrid />
-          <PolarAngleAxis dataKey="subject" />
-          <PolarRadiusAxis />
-          <Radar name="Puntos" dataKey="value" fill="#8884d8" fillOpacity={0.6} />
-        </RadarChart>
+        <div className="w-full overflow-x-auto">
+          <RadarChart
+            cx="50%"
+            cy="50%"
+            outerRadius="80%"
+            width={400}
+            height={400}
+            data={radarData}
+          >
+            <PolarGrid />
+            <PolarAngleAxis dataKey="subject" />
+            <PolarRadiusAxis />
+            <Radar name="Puntos" dataKey="value" fill="#8884d8" fillOpacity={0.6} />
+          </RadarChart>
+        </div>
       </section>
 
       {/* Diagrama dinámico */}
-{/* Diagrama dinámico */}
+      <section className="bg-white p-6 rounded shadow">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xl">Diagrama de decisiones</h3>
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-gray-600">
+              {showMock ? "Vista: Demo (maqueta animada)" : "Vista: Diagrama real"}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowMock((v) => !v)}
+              className="px-3 py-1.5 rounded-md text-sm border shadow-sm bg-white hover:bg-gray-50"
+              title="Alternar entre demo y diagrama real"
+            >
+              {showMock ? "Ver diagrama real" : "Ver demo"}
+            </button>
+          </div>
+        </div>
 
+        {/* Leyenda */}
+        <div className="flex gap-4 text-sm text-gray-600 mb-3">
+          <span className="inline-flex items-center gap-2">
+            <span style={{ width: 12, height: 12, background: "#22c55e", display: "inline-block", borderRadius: 3 }} />
+            OK
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span style={{ width: 12, height: 12, background: "#f59e0b", display: "inline-block", borderRadius: 3 }} />
+            Advertencia
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span style={{ width: 12, height: 12, background: "#ef4444", display: "inline-block", borderRadius: 3 }} />
+            No cumple
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span style={{ width: 12, height: 12, background: "#1976d2", display: "inline-block", borderRadius: 3 }} />
+            Info
+          </span>
+        </div>
 
-<section className="bg-white p-6 rounded shadow">
-  <h3 className="text-xl mb-4">Diagrama de decisiones</h3>
-<div className="flex items-center justify-between mb-2">
-  <div className="text-sm text-gray-600">
-    {showMock ? "Vista: Demo (maqueta animada)" : "Vista: Diagrama real"}
-  </div>
-  <button
-    type="button"
-    onClick={() => setShowMock(v => !v)}
-    className="px-3 py-1.5 rounded-md text-sm border shadow-sm bg-white hover:bg-gray-50"
-    title="Alternar entre demo y diagrama real"
-  >
-    {showMock ? "Ver diagrama real" : "Ver demo"}
-  </button>
-</div>
-  {/* 👇 Aquí pondrías la leyenda */}
-  <div className="flex gap-4 text-sm text-gray-600 mb-2">
-    <span className="inline-flex items-center gap-2">
-      <span style={{width:12,height:12,background:"#22c55e",display:"inline-block",borderRadius:3}} />
-      OK
-    </span>
-    <span className="inline-flex items-center gap-2">
-      <span style={{width:12,height:12,background:"#f59e0b",display:"inline-block",borderRadius:3}} />
-      Advertencia
-    </span>
-    <span className="inline-flex items-center gap-2">
-      <span style={{width:12,height:12,background:"#ef4444",display:"inline-block",borderRadius:3}} />
-      No cumple
-    </span>
-    <span className="inline-flex items-center gap-2">
-      <span style={{width:12,height:12,background:"#1976d2",display:"inline-block",borderRadius:3}} />
-      Info
-    </span>
-  </div>
-    
-{showMock ? (
-  <div className="w-full">
-    <DecisionDiagramMock
-      nodeDataArray={nodeDataArray}   // ← los reales del endpoint
-      linkDataArray={linkDataArray}
-    />
-  </div>
-) : (
-  <div className="h-96 flex items-center justify-center border-dashed border-2 border-gray-300 w-full">
-    {loadingTree ? (
-      <span className="text-gray-500">Cargando diagrama…</span>
-    ) : treeError ? (
-      <span className="text-red-600">No se pudo cargar el diagrama: {treeError}</span>
-    ) : (
-      <DecisionDiagram
-        nodeDataArray={nodeDataArray}
-        linkDataArray={linkDataArray}
-      />
-    )}
-  </div>
-)}
-
-</section>
-
+        {/* Render del diagrama */}
+        {showMock ? (
+          <div className="w-full">
+            <DecisionDiagramMock
+              nodeDataArray={nodes as any}   // usamos los nodos/enlaces del hook
+              linkDataArray={links as any}
+            />
+          </div>
+        ) : (
+          <div className="h-96 flex items-center justify-center border-dashed border-2 border-gray-300 w-full">
+            {isLoading ? (
+              <span className="text-gray-500">Cargando diagrama…</span>
+            ) : error ? (
+              <span className="text-red-600">No se pudo cargar el diagrama.</span>
+            ) : (
+              <DecisionDiagram
+                nodeDataArray={nodes as any}
+                linkDataArray={links as any}
+              />
+            )}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
 
+const toBoolSSR = (v: any) => v === true || v === "Yes" || v === "yes" || v === "1";
 
-
-
-export const getServerSideProps: GetServerSideProps = async (ctx) => {
-  const { req } = ctx;
-  const raw = req.headers.cookie || "";
-  const { token } = cookie.parse(raw);
-
-  // Autenticación
-  if (!token) {
-    return { redirect: { destination: "/login", permanent: false } };
-  }
-  let payload: any;
+export const getServerSideProps: GetServerSideProps = async ({ req }) => {
   try {
-    payload = jwt.verify(token, process.env.JWT_SECRET!);
-  } catch {
-    return { redirect: { destination: "/login", permanent: false } };
-  }
+    const cookies = cookie.parse(req.headers.cookie || "");
+    const token = cookies.token;
+    if (!token) return { redirect: { destination: "/login", permanent: false } };
 
-  // Buscar usuario
-  const user = await prisma.user.findUnique({
-    where: { id: payload.userId },
-    select: { name: true, id: true },
-  });
-  if (!user) {
-    return { redirect: { destination: "/login", permanent: false } };
-  }
+    const payload = jwt.verify(token, process.env.JWT_SECRET!) as { userId: number };
+    const userId = payload?.userId;
+    if (!userId) return { redirect: { destination: "/login", permanent: false } };
 
-  // Buscar perfil
-  const profileRaw = await prisma.profile.findUnique({
-    where: { userId: user.id },
-  });
-  if (!profileRaw) {
-    return { redirect: { destination: "/form", permanent: false } };
-  }
-  const profile = JSON.parse(JSON.stringify(profileRaw));
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true },
+    });
 
-  // Obtener breakdown desde el endpoint dedicado
-  // Construir URL absoluta usando el host de la petición
-  const protocol = req.headers["x-forwarded-proto"] || "http";
-  const host = req.headers.host;
-  const breakdownUrl = `${protocol}://${host}/api/profile/breakdown`;
-  const breakdownRes = await fetch(
-    `${protocol}://${host}/api/profile/breakdown`,
-    {
-      headers: { cookie: raw },
-    },
-  );
-  if (!breakdownRes.ok) {
-    // En caso de error, loguear y devolver breakdown vacío
-    console.error(
-      "Error fetching breakdown:",
-      breakdownRes.status,
-      await breakdownRes.text(),
-    );
-    const breakdownEmpty: Record<string, number> = {};
-    return {
-      props: { userName: user.name, profile, breakdown: breakdownEmpty },
+    const dbProfile = await prisma.profile.findUnique({ where: { userId } });
+
+    // Perfil plano para UI
+    const uiProfile = dbProfile
+      ? {
+          ...JSON.parse(JSON.stringify(dbProfile)),
+          // opcional: adapta nombres si tu UI los espera en snake_case/camelCase
+        }
+      : null;
+
+    // Calcula breakdown aquí mismo (mismos tramos que en la API)
+    const payloadProfile = dbProfile
+      ? {
+          visaSubclass: (dbProfile as any).visaSubclass ?? "189",
+          age: Number((dbProfile as any).age ?? 0),
+          englishLevel: (dbProfile as any).englishLevel ?? "Competent",
+          workExperience_out: Number((dbProfile as any).workExperience_out ?? 0),
+          workExperience_in: Number((dbProfile as any).workExperience_in ?? 0),
+          education_qualification: (dbProfile as any).education_qualification ?? "",
+          specialistQualification: (dbProfile as any).specialistQualification ?? "",
+          australianStudy: toBoolSSR((dbProfile as any).study_requirement),
+          communityLanguage: toBoolSSR((dbProfile as any).natti),
+          regionalStudy: toBoolSSR((dbProfile as any).regional_study),
+          professionalYear: toBoolSSR((dbProfile as any).professional_year),
+          partnerSkill: (dbProfile as any).partner ?? "",
+          nominationType: (dbProfile as any).nomination_sponsorship ?? "",
+        }
+      : null;
+
+    // compute breakdown inline
+    const b: any = {
+      visa: 0, age: 0, english: 0, workOutside: 0, workInside: 0,
+      education: 0, specialist: 0, australianStudy: 0, communityLanguage: 0,
+      regionalStudy: 0, professionalYear: 0, partner: 0, nomination: 0,
     };
+    if (payloadProfile) {
+      if (payloadProfile.visaSubclass === "491") b.visa = 15;
+      if (payloadProfile.visaSubclass === "190") b.visa = 5;
+      if (payloadProfile.age < 25) b.age = 25;
+      else if (payloadProfile.age < 33) b.age = 30;
+      else if (payloadProfile.age < 40) b.age = 25;
+      else if (payloadProfile.age < 45) b.age = 15;
+      if (payloadProfile.englishLevel === "Proficient") b.english = 10;
+      else if (payloadProfile.englishLevel === "Superior") b.english = 20;
+      if (payloadProfile.workExperience_out >= 8) b.workOutside = 15;
+      else if (payloadProfile.workExperience_out >= 5) b.workOutside = 10;
+      else if (payloadProfile.workExperience_out >= 3) b.workOutside = 5;
+      if (payloadProfile.workExperience_in >= 8) b.workInside = 20;
+      else if (payloadProfile.workExperience_in >= 5) b.workInside = 15;
+      else if (payloadProfile.workExperience_in >= 3) b.workInside = 10;
+      else if (payloadProfile.workExperience_in >= 1) b.workInside = 5;
+      const edu = (payloadProfile.education_qualification || "").toLowerCase();
+      if (edu.includes("phd") || edu.includes("doctor")) b.education = 20;
+      else if (edu.includes("master")) b.education = 15;
+      else if (edu.includes("bachelor") || edu.includes("degree")) b.education = 15;
+      if (payloadProfile.australianStudy) b.australianStudy = 5;
+      if (payloadProfile.communityLanguage) b.communityLanguage = 5;
+      if (payloadProfile.regionalStudy) b.regionalStudy = 5;
+      if (payloadProfile.professionalYear) b.professionalYear = 5;
+      switch (payloadProfile.partnerSkill) {
+        case "skill+english": b.partner = 10; break;
+        case "competentEnglish": b.partner = 5; break;
+        case "singleOrCitizenPR": b.partner = 10; break;
+      }
+      switch (payloadProfile.nominationType) {
+        case "state": b.nomination = 15; break;
+        case "family": b.nomination = 15; break;
+      }
+    }
+    return {
+      props: {
+        userName: user?.name ?? null,
+        profile: uiProfile,
+        breakdown: b,
+      },
+    };
+  } catch (e) {
+    console.error(e);
+    return { redirect: { destination: "/login", permanent: false } };
   }
-  const { breakdown } = await breakdownRes.json();
-
-  return {
-    props: {
-      userName: user.name,
-      profile,
-      breakdown,
-    },
-  };
 };

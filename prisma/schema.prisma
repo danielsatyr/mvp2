@@ -42,21 +42,21 @@ model Profile {
   id                      Int      @id @default(autoincrement())
   userId                  Int      @unique
   visaSubclass            String   @default("189")
-  age                     Int
-  occupation              String
-  englishLevel            String
-  workExperience_in       Int
-  workExperience_out      Int
-  nationality             String
-  education_qualification String
-  study_requirement       String
-  regional_study          String
-  professional_year       String
-  natti                   String
-  partner                 String
-  nomination_sponsorship  String
+  age                     Int @default(0)
+  occupation              String @default("")
+  englishLevel            String @default("")
+  workExperience_in       Int @default(0)
+  workExperience_out      Int @default(0)
+  nationality             String @default("")
+  education_qualification String @default("")
+  study_requirement       String @default("")
+  regional_study          String @default("")
+  professional_year       String @default("")
+  natti                   String @default("")
+  partner                 String @default("")
+  nomination_sponsorship  String @default("")
   specialistQualification String?  @default("none")
-  score                   Int
+  score                   Int @default(0)
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
   user                    User     @relation(fields: [userId], references: [id])
