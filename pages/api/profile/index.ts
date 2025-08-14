@@ -3,10 +3,20 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import * as cookie from "cookie";
 import jwt from "jsonwebtoken";
 import { Prisma, PrismaClient } from "@prisma/client";
+import { z } from "zod";
+
 
 const prisma = new PrismaClient();
 
 type JwtPayload = { userId: number };
+
+const ProfileSchema = z.object({
+  visaSubclass: z.enum(["189","190","491"]),
+  age: z.number().int().nonnegative(),
+  englishLevel: z.enum(["Competent","Proficient","Superior"]),
+  // ...resto de campos como ya normalizamos
+});
+
 
 function getUserId(req: NextApiRequest): number | null {
   try {

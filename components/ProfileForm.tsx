@@ -27,8 +27,8 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
     regionalStudy: initialProfile?.regional_study ?? "",
     professionalYear: initialProfile?.professional_year ?? "",
     communityLanguage: initialProfile?.natti ?? "",
-    partnerSkill: initialProfile?.partner ?? "",
-    nominationType: initialProfile?.nomination_sponsorship ?? "",
+    partnerSkill: initialProfile?.partner ?? 0,
+    nominationType: initialProfile?.nomination_sponsorship ?? 0,
   });
 
   const [occupations, setOccupations] = useState<Occupation[]>([]);

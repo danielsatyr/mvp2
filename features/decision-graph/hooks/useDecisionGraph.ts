@@ -1,64 +1,95 @@
 import useSWR from "swr";
-import { mapToGraphMinimal } from "../mapToGraph";
-import type { Breakdown, OccupationRow, UserProfile } from "../types";
+import { mapToGraphWithEligibility } from "../services/mapToGraph";
+import { useEligibilityCascader, CascaderState } from "./useEligibilityCascader";
+import type { DiagramNode, DiagramLink } from "../types";
 
-const fetcher = (url: string) => fetch(url).then(r => r.json());
+// Ajusta este tipo a tu modelo real si ya lo tienes en ../types
+type Profile = {
+  occupationId?: string;
+  anzscoCode?: string;
+  englishLevel?: string;
+  points?: number;
+  userId?: number | string;
+  age?: number;
+};
 
-function normalizeBreakdown(data: any): { breakdown: Breakdown | null; score: number | null } {
-  if (!data) return { breakdown: null, score: null };
-  if (data.breakdown) {
-    const score = typeof data.score === "number"
-      ? data.score
-      : Object.values(data.breakdown).reduce((a: number, n: number) => a + (n || 0), 0);
-    return { breakdown: data.breakdown as Breakdown, score };
-  }
-  const b = data as Breakdown;
-  const score = Object.values(b).reduce((a, n) => a + (n || 0), 0);
-  return { breakdown: b, score };
-}
-
-// ⚠️ Exportamos nombrado Y default para evitar desajustes en el import
-export function useDecisionGraph() {
-  const { data, error, isLoading, mutate } = useSWR("/api/profile/breakdown", fetcher, {
-    revalidateOnFocus: false,
+const fetcher = (url: string) =>
+  fetch(url).then((r) => {
+    if (!r.ok) throw new Error(`${r.status}`);
+    return r.json();
   });
 
-  const { breakdown, score } = normalizeBreakdown(data);
+export function useDecisionGraph(profile: Profile, ui: CascaderState) {
+  // Desestructuramos aquí para que EXISTAN en el scope
+  const { selectedVisa, selectedState, selectedPathwayId } = ui || {};
 
-  // MOCKS por ahora (luego conectamos DB)
-  const profile: UserProfile = {
-    userId: 1,
-    age: 30,
-    englishLevel: "Superior",
-    workExperience_in: 2,
-    workExperience_out: 5,
-    education_qualification: "Bachelor",
-    australianStudy: true,
-    regionalStudy: false,
-    communityLanguage: false,
-    professionalYear: false,
-    partnerSkill: "",
-    nominationType: "",
-    occupation_id: 261313,
-    occupation_name: "Software Engineer",
+  // ---- Visas disponibles (Paso 1) ----
+  const q = new URLSearchParams();
+  if (profile?.occupationId) q.set("occupationId", String(profile.occupationId));
+  if (profile?.anzscoCode) q.set("anzscoCode", String(profile.anzscoCode));
+
+  const { data: visas, error: visasError, isLoading: visasLoading } = useSWR<string[]>(
+    q.toString() ? `/api/eligibility/visas?${q.toString()}` : null,
+    fetcher
+  );
+
+  // ---- Cascada (Paso 2 y 3) ----
+  const cascader = useEligibilityCascader(
+    { occupationId: profile?.occupationId, anzscoCode: profile?.anzscoCode },
+    { selectedVisa, selectedState, selectedPathwayId }
+  );
+
+  // ---- baseGraph: Start + Elig Visas + nodos visa-xxx ----
+  // (No incluimos Occupation aquí; si ya lo pintas en otro lado, genial)
+  const startLabel = `Total: ${profile?.points ?? 0} pts`;
+
+  const baseNodes: DiagramNode[] = [
+    { key: "Start", text: startLabel, status: "info", isTreeExpanded: true },
+    { key: "elig-visas", text: "Visas disponibles por ocupación", status: "info" },
+  ];
+
+
+  
+  const baseLinks: DiagramLink[] = [
+    { from: "Start", to: "elig-visas" },
+  ];
+
+  // Añadimos los nodos de visas si existen
+  (visas ?? []).forEach((v) => {
+    const visaKey = `visa-${v}` as const;
+    baseNodes.push({
+      key: visaKey,
+      text: v === "189"
+        ? "189 — Skilled Independent"
+        : v === "190"
+        ? "190 — State Nominated"
+        : "491 — Skilled Work Regional",
+      status: "info",
+      isTreeExpanded: false,
+    });
+    baseLinks.push({ from: "elig-visas", to: visaKey });
+  });
+
+
+  
+  const baseGraph = { nodes: baseNodes, links: baseLinks };
+
+  // ---- Extender con estados/pathways/reglas (Paso 4) ----
+  const graph = mapToGraphWithEligibility(baseGraph, {
+    profile,
+    selectedVisa,
+    selectedState,
+    selectedPathwayId,
+    states: cascader.states,
+    pathways: cascader.pathways,
+  });
+
+  return {
+    graph,
+    visas: visas ?? [],
+    states: cascader.states,
+    pathways: cascader.pathways,
+    loading: Boolean(visasLoading || cascader.loading),
+    error: visasError || cascader.error || null,
   };
-
-  const occ: OccupationRow = {
-    occupation_id: 261313,
-    name: "Software Engineer",
-    anzsco_code: "261313",
-    skill_assessment_body: "ACS",
-    Skill_Level_Required: 1,
-    visa_189: "Yes",
-    visa_190: "Yes",
-    visa_491: "Yes",
-  };
-
-  const { nodes, links } = breakdown
-    ? mapToGraphMinimal(profile, occ, breakdown)
-    : { nodes: [], links: [] };
-
-  return { nodes, links, breakdown, score, isLoading, error, refresh: mutate };
 }
-
-export default useDecisionGraph;
