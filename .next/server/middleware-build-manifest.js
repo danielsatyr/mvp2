@@ -30,10 +30,10 @@ globalThis.__BUILD_MANIFEST = {
       "static/chunks/main.js",
       "static/chunks/pages/dashboard.js"
     ],
-    "/form": [
+    "/dev/diag": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/form.js"
+      "static/chunks/pages/dev/diag.js"
     ]
   },
   "ampFirstPages": []

@@ -28,7 +28,9 @@
         "name": "next"
       }
     ],
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "allowImportingTsExtensions": true
+
   },
   "include": [
     "**/*.ts",
@@ -37,7 +39,7 @@
     "scripts/validate-mapping.js",
     ".next/types/**/*.ts"
 , "archive/dashboard.tsx" 
- ],
+, "archive/index.daniel", "archive/profile" ],
   
 "exclude": 
 ["node_modules", 

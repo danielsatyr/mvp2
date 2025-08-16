@@ -26,7 +26,7 @@ model Occupation {
   stsolFlag           Boolean @map("stsol_flag")
   rolFlag             Boolean @map("rol_flag")
   /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
-  // subclass190 Boolean @default(false) @map("190")
+  subclass190 Boolean @default(false) @map("190")
   subclass189Pt       Boolean @default(false) @map("189 (PT)")
   /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
   // subclass186 Boolean @default(false) @map("186")
@@ -106,8 +106,6 @@ model EligibilityFactors {
   otherRequirement            String?
   offshore                    Boolean?
 
-  createdAt                   DateTime  @default(now())
-  updatedAt                   DateTime  @updatedAt
 
   @@index([occupationId, visa, state])
 }

@@ -60,6 +60,7 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
       const payload = {
         age: Number(form.edad),
         occupation: form.occupation,
+        anzscoCode: form.occupation,   // 👈 NUEVO: occupationId como código ANZSCO
         englishLevel: form.ingles,
         workExperience_in: Number(form.australianExp),
         workExperience_out: Number(form.overseasExp),
@@ -141,7 +142,9 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
               <p className="text-red-600">Error: {errorOcc}</p>
             ) : (
               <select
-                id="occupation"
+
+              id="occupation"
+              //value={typeof form.occupation === "string" ? (form.occupation.match(/\b\d{6}\b/)?.[0] ?? "") : ""}
                 value={form.occupation}
                 onChange={handleChange}
                 className="w-full border rounded px-2 py-1"
@@ -152,8 +155,15 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
                   <option key={o.occupationId} value={o.occupationId}>
                     {o.occupationId} – {o.name}
                   </option>
+
+
                 ))}
+                
               </select>
+
+
+
+              
             )}
           </div>
           {/* Experiencia fuera de AU */}

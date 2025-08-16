@@ -5,7 +5,6 @@ import jwt from "jsonwebtoken";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { z } from "zod";
 
-
 const prisma = new PrismaClient();
 
 type JwtPayload = { userId: number };
@@ -16,7 +15,6 @@ const ProfileSchema = z.object({
   englishLevel: z.enum(["Competent","Proficient","Superior"]),
   // ...resto de campos como ya normalizamos
 });
-
 
 function getUserId(req: NextApiRequest): number | null {
   try {
@@ -146,6 +144,7 @@ function normalizeBody(body: any) {
     nominationType: body.nominationType ?? body.nomination_sponsorship ?? "",
 
     occupation: body.occupation ?? body.occupation_name ?? "",
+    // NO escribimos anzscoCode para no romper el esquema actual
     nationality: body.nationality ?? "",
   };
 }
@@ -213,7 +212,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         education_qualification: payload.education_qualification,
         specialistQualification: payload.specialistQualification || "",
 
-        // 👇 convertir booleans a strings esperados por tu modelo
+        // convertir booleans a strings esperados por tu modelo
         study_requirement: payload.australianStudy ? "Yes" : "No",
         regional_study: payload.regionalStudy ? "Yes" : "No",
         professional_year: payload.professionalYear ? "Yes" : "No",
@@ -222,7 +221,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         partner: payload.partnerSkill || "",
         nomination_sponsorship: payload.nominationType || "",
 
-        occupation: b.occupation || "",
+        occupation: b.occupation || "", // guardamos lo que mande el form
         nationality: b.nationality || "",
 
         score,

@@ -9,6 +9,9 @@ import type { GetServerSideProps } from "next";
 import * as cookie from "cookie";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
+import { useEffect } from "react";
+import DecisionDiagram from "@/components/DecisionDiagram";
+
 
 import { useDecisionGraph } from "@/features/decision-graph/hooks/useDecisionGraph";
 // Ajusta esta ruta si tu mock está en otra carpeta:
@@ -39,8 +42,80 @@ export default function Dashboard({
     return false;
   });
 
-  // Hook que orquesta datos → grafo (raíz + ocupación + visas)
-  const { nodes, links, isLoading, error, refresh } = useDecisionGraph();
+  
+  // --- NUEVO: perfil y UI para el hook ---
+  // Sumatoria segura de breakdown para que el nodo Start muestre el total
+  const totalPoints =
+    Object.values(breakdown ?? {}).reduce((acc, n) => acc + (n || 0), 0);
+  
+// ⬇️ intenta extraer un ANZSCO de 6 dígitos del campo occupation (si viene "261313 – Industrial Engineer", lo toma)
+const extractedAnzsco: string | undefined =
+  (typeof profile?.anzscoCode === "string" && profile.anzscoCode.trim()) ||
+  (typeof profile?.occupation === "string" && profile.occupation.match(/\b\d{6}\b/)?.[0]) ||
+  undefined;
+
+
+
+  // Mapeamos occupation -> anzscoCode (ajusta si tu campo se llama distinto)
+  const profileForHook = {
+   // anzscoCode: profile?.occupation || fallbackAnzsco,
+   //  anzscoCode: "261313", // <- forzado para probar
+   // anzscoCode: extractedAnzsco ?? fallbackAnzsco,
+    anzscoCode: extractedAnzsco,               // ← aquí llega el anzscoCode “vivo” desde lo que guardó el form
+    englishLevel: profile?.englishLevel || undefined,
+    points: totalPoints,
+    userId: profile?.userId,
+    age: profile?.age,
+  };
+
+
+
+  // Visa inicial solo si es estatal (190/491); para 189 no hace falta cascada
+  const [ui, setUi] = useState<{
+    selectedVisa?: "189" | "190" | "491";
+    selectedState?: string;
+    selectedPathwayId?: string;
+  }>(() => {
+    const vs = (profile?.visaSubclass as "189" | "190" | "491" | undefined) || undefined;
+    return {
+      selectedVisa: vs === "190" || vs === "491" ? vs : undefined,
+      selectedState: undefined,
+      selectedPathwayId: undefined,
+    };
+  });
+
+
+
+  // Hook que orquesta datos → grafo (Start + visas + cascada estados/pathways)
+  const {
+    graph,
+    visas,
+    states,
+    pathways,
+    loading: isLoading,
+    error,
+  } = useDecisionGraph(profileForHook, ui);
+
+  // Exponemos nodos/links como antes los esperaba el render
+  const nodes = graph?.nodes ?? [];
+  const links = graph?.links ?? [];
+
+  // Refresh "seguro" para no romper: recarga suave
+  const refresh = () => {
+    if (typeof window !== "undefined") window.location.reload();
+  };
+
+// Cuando lleguen visas, selecciona una por defecto (preferir 190)
+useEffect(() => {
+  if (!ui.selectedVisa && Array.isArray(visas) && visas.length) {
+    setUi(u => ({
+      ...u,
+      selectedVisa: (visas.includes("190") ? "190" : visas[0]) as "189" | "190" | "491",
+    }));
+  }
+}, [visas, ui.selectedVisa, setUi]);
+  
+
 
   // Datos para el gráfico radial (desde el breakdown que recibes por props)
   const radarData = Object.entries(breakdown ?? {}).map(([subject, value]) => ({
@@ -130,6 +205,7 @@ export default function Dashboard({
           </div>
         </div>
 
+
         {/* Leyenda */}
         <div className="flex gap-4 text-sm text-gray-600 mb-3">
           <span className="inline-flex items-center gap-2">
@@ -150,6 +226,18 @@ export default function Dashboard({
           </span>
         </div>
 
+    <div className="text-xs font-mono bg-gray-50 p-2 rounded mb-3">
+      <div>loading: {String(isLoading)}</div>
+      <div>error: {error ? String((error as any)?.message || error) : "null"}</div>
+      <div>anzscoCode: {String(profileForHook.anzscoCode)}</div>
+      <div>selectedVisa: {String(ui.selectedVisa)} | selectedState: {String(ui.selectedState)} | selectedPathwayId: {String(ui.selectedPathwayId)}</div>
+      <div>visas: {JSON.stringify(visas)}</div>
+      <div>states: {JSON.stringify(states)}</div>
+      <div>pathways: {JSON.stringify(pathways?.map(p => p.pathwayId))}</div>
+      <div>graph: nodes={nodes.length} links={links.length}</div>
+    </div>
+
+
         {/* Render del diagrama */}
         {showMock ? (
           <div className="w-full">
@@ -160,16 +248,15 @@ export default function Dashboard({
           </div>
         ) : (
           <div className="h-96 flex items-center justify-center border-dashed border-2 border-gray-300 w-full">
-            {isLoading ? (
-              <span className="text-gray-500">Cargando diagrama…</span>
-            ) : error ? (
-              <span className="text-red-600">No se pudo cargar el diagrama.</span>
-            ) : (
-              <DecisionDiagram
-                nodeDataArray={nodes as any}
-                linkDataArray={links as any}
-              />
-            )}
+              {isLoading ? (
+                <span className="text-gray-500">Cargando diagrama…</span>
+              ) : nodes.length && links.length ? (
+                <DecisionDiagram nodeDataArray={nodes as any} linkDataArray={links as any} />
+              ) : error ? (
+                <span className="text-red-600">No se pudo cargar el diagrama.</span>
+              ) : (
+                <span className="text-gray-500">Sin datos para mostrar todavía…</span>
+              )}
           </div>
         )}
       </section>
@@ -223,6 +310,8 @@ export const getServerSideProps: GetServerSideProps = async ({ req }) => {
         }
       : null;
 
+
+      
     // compute breakdown inline
     const b: any = {
       visa: 0, age: 0, english: 0, workOutside: 0, workInside: 0,

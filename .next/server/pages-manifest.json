@@ -3,10 +3,6 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/dashboard": "pages/dashboard.js",
-  "/form": "pages/form.js",
-  "/": "pages/index.js",
-  "/api/me": "pages/api/me.js",
-  "/api/occupations": "pages/api/occupations.js",
-  "/api/profile": "pages/api/profile.js",
-  "/api/profile/breakdown": "pages/api/profile/breakdown.js"
+  "/dev/diag": "pages/dev/diag.js",
+  "/": "pages/index.js"
 }
