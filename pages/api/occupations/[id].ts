@@ -29,14 +29,14 @@ const occ = await prisma.occupation.findUnique({
     rolFlag: true,
     subclass190: true,
     subclass189Pt: true,
-    subclass186: true,
+   //  subclass186: true,
     subclass491St: true,
     subclass491F: true,
-    subclass494: true,
-    subclass482: true,
-    subclass407: true,
-    subclass485: true,
-    skillLevelRequired: true,
+     // subclass494: true,
+     // subclass482: true,
+     // subclass407: true,
+     // subclass485: true,
+     skillLevelRequired: true,
   },
 });
 
@@ -48,13 +48,13 @@ if (!occ) {
 const flags = [
   ['subclass190', '190'],
   ['subclass189Pt', '189 (PT)'],
-  ['subclass186', '186'],
+//   ['subclass186', '186'],
   ['subclass491St', '491(S/T)'],
   ['subclass491F', '491 (F)'],
-  ['subclass494', '494'],
-  ['subclass482', '482'],
-  ['subclass407', '407'],
-  ['subclass485', '485'],
+//   ['subclass494', '494'],
+//   ['subclass482', '482'],
+//   ['subclass407', '407'],
+//   ['subclass485', '485'],
 ] as const;
 
 const available = flags

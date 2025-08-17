@@ -10,7 +10,6 @@ import * as cookie from "cookie";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
 import { useEffect } from "react";
-import DecisionDiagram from "@/components/DecisionDiagram";
 
 
 import { useDecisionGraph } from "@/features/decision-graph/hooks/useDecisionGraph";
@@ -51,7 +50,7 @@ export default function Dashboard({
 // ⬇️ intenta extraer un ANZSCO de 6 dígitos del campo occupation (si viene "261313 – Industrial Engineer", lo toma)
 const extractedAnzsco: string | undefined =
   (typeof profile?.anzscoCode === "string" && profile.anzscoCode.trim()) ||
-  (typeof profile?.occupation === "string" && profile.occupation.match(/\b\d{6}\b/)?.[0]) ||
+    (typeof profile?.occupationId === "string" && profile.occupationId.match(/\b\d{6}\b/)?.[0]) ||
   undefined;
 
 

@@ -14,14 +14,14 @@ export interface UserProfile {
   professionalYear?: boolean;
   partnerSkill?: "" | "competentEnglish" | "skill+english" | "singleOrCitizenPR";
   nominationType?: "" | "state" | "family";
-  occupation_id: number;
+  occupationId: number;
   occupation_name: string;
 }
 
 export interface OccupationRow {
-  occupation_id: number;
+  occupationId: number;
   name: string;
-  anzsco_code?: string;
+  anzscoCode?: string;
   skill_assessment_body: string;
   Skill_Level_Required: 1 | 2 | 3 | 4 | 5;
   // H..P de visas (simplificado):
@@ -54,7 +54,7 @@ export interface StateEligibility {
 }
 
 export interface EligibilityFactors {
-  occupation_id: number;
+  occupationId: number;
   visa: VisaCode;             // 190 o 491
   states: StateEligibility[];
 }

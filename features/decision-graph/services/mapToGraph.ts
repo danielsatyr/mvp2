@@ -49,7 +49,7 @@ export function mapToGraphMinimal(
     },
     {
       key: "occ",
-      text: `Occupation: ${occ.name} (${occ.occupation_id})`,
+      text: `Occupation: ${occ.name} (${occ.occupationId})`,
       status: "info",
       tooltipHtml:
         `<div><b>Skill level:</b> ${occ.Skill_Level_Required}</div>` +
