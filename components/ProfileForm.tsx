@@ -19,7 +19,7 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
   const [form, setForm] = useState({
     edad: initialProfile?.age.toString() ?? "",
     ingles: initialProfile?.englishLevel ?? "",
-    occupation: initialProfile?.occupation ?? "",
+       occupationId: initialProfile?.occupationId ?? "",
     overseasExp: initialProfile?.workExperience_out.toString() ?? "",
     australianExp: initialProfile?.workExperience_in.toString() ?? "",
     eduQualification: initialProfile?.education_qualification ?? "",
@@ -59,8 +59,8 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
     try {
       const payload = {
         age: Number(form.edad),
-        occupation: form.occupation,
-        anzscoCode: form.occupation,   // 👈 NUEVO: occupationId como código ANZSCO
+      occupationId: form.occupationId,
+      anzscoCode: form.occupationId,   // 👈 NUEVO: occupationId como código ANZSCO
         englishLevel: form.ingles,
         workExperience_in: Number(form.australianExp),
         workExperience_out: Number(form.overseasExp),
@@ -133,8 +133,8 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
           </div>
           {/* Ocupación */}
           <div>
-            <label htmlFor="occupation" className="block font-medium">
-              Ocupación (ANZSCO Code)
+             <label htmlFor="occupationId" className="block font-medium">
+                Ocupación (ANZSCO Code)
             </label>
             {loadingOcc ? (
               <p>Cargando...</p>
@@ -143,9 +143,8 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
             ) : (
               <select
 
-              id="occupation"
-              //value={typeof form.occupation === "string" ? (form.occupation.match(/\b\d{6}\b/)?.[0] ?? "") : ""}
-                value={form.occupation}
+             id="occupationId"
+                value={form.occupationId}
                 onChange={handleChange}
                 className="w-full border rounded px-2 py-1"
                 required
@@ -321,7 +320,7 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
             </label>
             <select
               id="nominationType"
-              value={form.nominationType}
+             value={form.nominationType}
               onChange={handleChange}
               className="w-full border rounded px-2 py-1"
               required

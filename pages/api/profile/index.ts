@@ -143,7 +143,7 @@ function normalizeBody(body: any) {
     partnerSkill: body.partnerSkill ?? body.partner ?? "",
     nominationType: body.nominationType ?? body.nomination_sponsorship ?? "",
 
-    occupation: body.occupation ?? body.occupation_name ?? "",
+    occupationId: body.occupationId ?? body.occupation ?? body.occupation_name ?? "",
     // NO escribimos anzscoCode para no romper el esquema actual
     nationality: body.nationality ?? "",
   };

@@ -17,7 +17,7 @@ model User {
 }
 
 model Occupation {
-  id                  Int     @id @default(autoincrement())
+ id                  Int     @id @default(autoincrement())
   occupationId        String  @unique
   name                String
   anzscoCode          String  @map("anzsco_code")
@@ -25,22 +25,18 @@ model Occupation {
   mltsslFlag          Boolean @map("mltssl_flag")
   stsolFlag           Boolean @map("stsol_flag")
   rolFlag             Boolean @map("rol_flag")
-  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
   subclass190 Boolean @default(false) @map("190")
   subclass189Pt       Boolean @default(false) @map("189 (PT)")
-  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
-  // subclass186 Boolean @default(false) @map("186")
+  subclass186         Boolean @default(false) @map("186")
   subclass491St       Boolean @default(false) @map("491(S/T)")
   subclass491F        Boolean @default(false) @map("491 (F)")
-  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
-  // subclass494 Boolean @default(false) @map("494")
-  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
-  // subclass482 Boolean @default(false) @map("482")
-  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
-  // subclass407 Boolean @default(false) @map("407")
-  /// This field was commented out because of an invalid name. Please provide a valid one that matches [a-zA-Z][a-zA-Z0-9_]*
-  // subclass485 Boolean @default(false) @map("485")
+  subclass494         Boolean @default(false) @map("494")
+  subclass482         Boolean @default(false) @map("482")
+  subclass407         Boolean @default(false) @map("407")
+  subclass485         Boolean @default(false) @map("485")
   skillLevelRequired  String? @map("Skill_Level_Required")
+  profiles            Profile[]
+
 }
 
 model Profile {
@@ -48,7 +44,8 @@ model Profile {
   userId                  Int      @unique
   visaSubclass            String   @default("189")
   age                     Int      @default(0)
-  occupation              String   @default("")
+  occupationId            String?  @map("occupation")
+  occupation              Occupation? @relation(fields: [occupationId], references: [occupationId])
   englishLevel            String   @default("")
   workExperience_in       Int      @default(0)
   workExperience_out      Int      @default(0)

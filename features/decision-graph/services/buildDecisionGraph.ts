@@ -5,15 +5,15 @@ import { prisma } from "@/lib/prisma";
 
 export async function buildDecisionGraph(profile: ProfileInput): Promise<DecisionGraphDTO> {
   const rootKey = "start";
-  const occupationKey = `occ:${profile.occupationCode ?? "unknown"}`;
+  const occupationKey = `occ:${profile.occupationId ?? "unknown"}`;
   const eligibilityKey = "eligibility:baseline";
 
   // 1) Resolver nombre + ANZSCO desde Occupation usando el occupationId (string)
-  //    profile.occupationCode debe contener el occupationId único de tu tabla Occupation.
+  //    profile.occupationId debe contener el occupationId único de tu tabla Occupation.
   let occTitle = "Occupation: (no seleccionado)";
-  if (profile.occupationCode && profile.occupationCode.trim() !== "") {
+  if (profile.occupationId && profile.occupationId.trim() !== "") {
     const occ = await prisma.occupation.findUnique({
-      where: { occupationId: profile.occupationCode }, // <- único (String)
+      where: { occupationId: profile.occupationId }, // <- único (String)
       select: { name: true, anzscoCode: true },
     });
 
@@ -22,7 +22,7 @@ export async function buildDecisionGraph(profile: ProfileInput): Promise<Decisio
       occTitle = `ANZSCO ${occ.anzscoCode} – ${occ.name}`;
     } else {
       // fallback si el código en Profile no existe en Occupation
-      occTitle = `Occupation: ${profile.occupationCode} (no encontrado)`;
+      occTitle = `Occupation: ${profile.occupationId} (no encontrado)`;
     }
   }
 
