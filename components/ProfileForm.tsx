@@ -1,5 +1,5 @@
 // components/ProfileForm.tsx
-import { useState, useEffect, FormEvent } from "react";
+import React, { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/router";
 import { Profile as ProfileModel } from "@prisma/client";
 
@@ -19,7 +19,7 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
   const [form, setForm] = useState({
     edad: initialProfile?.age.toString() ?? "",
     ingles: initialProfile?.englishLevel ?? "",
-       occupationId: initialProfile?.occupationId ?? "",
+    occupationId: initialProfile?.occupationId ?? "",
     overseasExp: initialProfile?.workExperience_out.toString() ?? "",
     australianExp: initialProfile?.workExperience_in.toString() ?? "",
     eduQualification: initialProfile?.education_qualification ?? "",
@@ -153,15 +153,8 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
                 {occupations.map((o) => (
                   <option key={o.occupationId} value={o.occupationId}>
                     {o.occupationId} – {o.name}
-                  </option>
-
-
-                ))}
-                
-              </select>
-
-
-
+                  </option> ))}
+                </select>
               
             )}
           </div>

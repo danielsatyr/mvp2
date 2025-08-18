@@ -12,11 +12,11 @@ export type CascaderState = {
 };
 
 export function useEligibilityCascader(
-  baseParams: { occupationId?: string; anzscoCode?: string },
+  baseParams: { occupationId?: number; anzscoCode?: string },
   ui: CascaderState
 ) {
   const q = new URLSearchParams();
-  if (baseParams.occupationId) q.set("occupationId", baseParams.occupationId);
+  if (baseParams.occupationId) q.set("occupationId", String(baseParams.occupationId));
   if (baseParams.anzscoCode) q.set("anzscoCode", baseParams.anzscoCode);
 
   // Paso 2: estados (solo si hay visa seleccionada y != 189)

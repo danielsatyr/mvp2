@@ -2,9 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import * as cookie from "cookie";
 import jwt from "jsonwebtoken";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 type JwtPayload = { userId: number };
 

@@ -3,7 +3,7 @@ import { useDecisionGraph } from "../hooks/useDecisionGraph";
 
 type Props = {
   anzscoCode?: string;
-  occupationId?: string;
+  occupationId?: number;
   defaultVisa?: "189" | "190" | "491";
 };
 
@@ -13,13 +13,13 @@ export default function EligibilityTester({ anzscoCode = "261313", occupationId,
   const [selectedPathwayId, setSelectedPathwayId] = useState<string | undefined>(undefined);
 
   const profile = {
-    anzscoCode,
-    occupationId,
-    englishLevel: "Proficient",
-    points: 70,
-    userId: "demo",
-    age: 32,
-  };
+  anzscoCode,
+  occupationId: occupationId ? Number(occupationId) : undefined, // or occupation_id
+  englishLevel: "Proficient" as const,
+  points: 70,
+  userId: 1,
+  age: 32,
+};
 
   const { graph, visas, states, pathways, loading, error } = useDecisionGraph(
     profile,

@@ -39,7 +39,7 @@
     "scripts/validate-mapping.js",
     ".next/types/**/*.ts"
 , "archive/dashboard.tsx" 
-, "archive/index.daniel", "archive/profile" ],
+, "archive/index.daniel", "archive/profile", "archive/occupations.daniel" ],
   
 "exclude": 
 ["node_modules", 

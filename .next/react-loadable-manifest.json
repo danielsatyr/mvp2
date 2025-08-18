@@ -16,11 +16,5 @@
     "files": [
       "static/chunks/_pages-dir-browser_components_DecisionDiagram_tsx.js"
     ]
-  },
-  "pages\\dev\\diag.tsx -> @/components/DecisionDiagram": {
-    "id": "pages\\dev\\diag.tsx -> @/components/DecisionDiagram",
-    "files": [
-      "static/chunks/_pages-dir-browser_components_DecisionDiagram_tsx.js"
-    ]
   }
 }

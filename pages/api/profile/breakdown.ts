@@ -35,6 +35,8 @@ interface ProfilePayload {
   professionalYear?: boolean;
   partnerSkill?: string;
   nominationType?: string;
+  occupationId?: string;
+
 }
 
 type Breakdown = {

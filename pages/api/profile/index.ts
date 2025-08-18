@@ -2,10 +2,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import * as cookie from "cookie";
 import jwt from "jsonwebtoken";
-import { Prisma, PrismaClient } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 type JwtPayload = { userId: number };
 
@@ -45,6 +45,8 @@ interface ProfilePayload {
   professionalYear?: boolean;
   partnerSkill?: string; // "", "skill+english", "competentEnglish", "singleOrCitizenPR"
   nominationType?: string; // "", "state", "family"
+  occupationId?: string;
+
 }
 
 type Breakdown = {
@@ -143,7 +145,10 @@ function normalizeBody(body: any) {
     partnerSkill: body.partnerSkill ?? body.partner ?? "",
     nominationType: body.nominationType ?? body.nomination_sponsorship ?? "",
 
-    occupationId: body.occupationId ?? body.occupation ?? body.occupation_name ?? "",
+     occupationId:
+      body.occupationId ?? body.occupation ?? body.anzscoCode ?? "",
+     occupation:
+      body.occupationId ?? body.occupation ?? body.occupation_name ?? "",
     // NO escribimos anzscoCode para no romper el esquema actual
     nationality: body.nationality ?? "",
   };
@@ -168,7 +173,7 @@ function getDefaultProfileCreate(userId: number): Prisma.ProfileUncheckedCreateI
 
     partner: "",
     nomination_sponsorship: "",
-    occupation: "",
+    occupationId: null,
     nationality: "",
 
     score: 0,
@@ -197,6 +202,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         professionalYear: !!b.professionalYear,
         partnerSkill: b.partnerSkill || "",
         nominationType: b.nominationType || "",
+        occupationId: b.occupationId || "",
+
       };
 
       const { breakdown, score } = computeBreakdown(payload);
@@ -221,7 +228,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         partner: payload.partnerSkill || "",
         nomination_sponsorship: payload.nominationType || "",
 
-        occupation: b.occupation || "", // guardamos lo que mande el form
+        occupationId: b.occupationId || b.occupation || "", // guardamos lo que mande el form
         nationality: b.nationality || "",
 
         score,

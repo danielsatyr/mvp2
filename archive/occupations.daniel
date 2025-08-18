@@ -1,0 +1,41 @@
+/*import type { NextApiRequest, NextApiResponse } from "next";
+import { prisma } from "@/lib/prisma";
+
+function truthyFlag(v: any): boolean {
+  if (v === true || v === 1 || v === "1") return true;
+  if (typeof v === "string") {
+    const s = v.trim().toLowerCase();
+    return s === "yes" || s === "true" || s === "y";
+  }
+  return false;
+}
+
+function yesNo(v: any): "Yes" | "No" {
+  return truthyFlag(v) ? "Yes" : "No";
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "GET") {
+    res.setHeader("Allow", "GET");
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
+
+  try {
+    // Sin select para ser tolerantes (legacy vs nuevo)
+    const rows: any[] = await prisma.occupation.findMany();
+
+    const mapped = rows.map((r) => {
+     const occupationId = String(
+        r.occupation_id ?? r.occupationId ?? r.id ?? "",
+      );
+      const name = r.name ?? r.occupationName ?? r.title ?? "";
+      return { occupationId, name };
+    });
+
+    return res.status(200).json(mapped);
+  } catch (err) {
+    console.error("GET /api/occupations error:", err);
+    return res.status(500).json({ error: "Error cargando ocupaciones" });
+  }
+}
+*/

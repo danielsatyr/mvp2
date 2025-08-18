@@ -1,10 +1,8 @@
 // File: pages/api/occupations/[id].ts
 
 import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import type { OccupationDetailResponse } from '@/types/occupation';
-
-const prisma = new PrismaClient();
 
 export default async function handler(
   req: NextApiRequest,
@@ -12,37 +10,38 @@ export default async function handler(
 ) {
   const id = parseInt(req.query.id as string, 10);
   if (Number.isNaN(id)) {
-    return res.status(400).json({ error: "ID de ocupación inválido" });
-  }
+    return res.status(400).json({ error: "ID de ocupación inválido" }); }
 
   // 1) Traer occupation + eligibilityFactors
-const occ = await prisma.occupation.findUnique({
-  where: { id: Number(id) },
-  select: {
-    id: true,
-    occupationId: true,
-    name: true,
-    anzscoCode: true,
-    skillAssessmentBody: true,
-    mltsslFlag: true,
-    stsolFlag: true,
-    rolFlag: true,
-    subclass190: true,
-    subclass189Pt: true,
-   //  subclass186: true,
-    subclass491St: true,
-    subclass491F: true,
-     // subclass494: true,
-     // subclass482: true,
-     // subclass407: true,
-     // subclass485: true,
-     skillLevelRequired: true,
-  },
-});
+try {
+    // 1) Traer occupation + eligibilityFactors
+    const occ = await prisma.occupation.findUnique({
+      where: { id: Number(id) },
+      select: {
+        id: true,
+        occupationId: true,
+        name: true,
+        anzscoCode: true,
+        skillAssessmentBody: true,
+        mltsslFlag: true,
+        stsolFlag: true,
+        rolFlag: true,
+        subclass190: true,
+        subclass189Pt: true,
+       // subclass186: true,
+        subclass491St: true,
+        subclass491F: true,
+       // subclass494: true,
+       // subclass482: true,
+        //subclass407: true,
+       // subclass485: true,
+        skillLevelRequired: true,
+      } ,
+    });
 
-if (!occ) {
-  return res.status(404).json({ error: 'Not found' });
-}
+    if (!occ) {
+      return res.status(404).json({ error: 'Not found' });
+    }
 
 // Lista de subclases disponibles
 const flags = [
@@ -57,22 +56,28 @@ const flags = [
 //   ['subclass485', '485'],
 ] as const;
 
-const available = flags
-  .filter(([key]) => (occ as any)[key])
-  .map(([, label]) => label);
+    const available = flags
+      .filter(([key]) => (occ as any)[key])
+      .map(([, label]) => label);
 
  return res.status(200).json({
-    id: occ.id,
-    occupationId: occ.occupationId,
-    name: occ.name,
-    anzscoCode: occ.anzscoCode,
-    skillAssessmentBody: occ.skillAssessmentBody,
-    skillLevelRequired: occ.skillLevelRequired ?? null,
-    lists: {
-      mltssl: occ.mltsslFlag,
-      stsol: occ.stsolFlag,
-      rol: occ.rolFlag,
-    },
-    eligibleSubclasses: available,
-  });
+      id: occ.id,
+      occupationId: occ.occupationId,
+      name: occ.name,
+      anzscoCode: occ.anzscoCode,
+      skillAssessmentBody: occ.skillAssessmentBody,
+      skillLevelRequired: occ.skillLevelRequired ?? null,
+      lists: {
+        mltssl: occ.mltsslFlag,
+        stsol: occ.stsolFlag,
+        rol: occ.rolFlag,
+      },
+      eligibleSubclasses: available,
+    });
+  } catch (error) {
+    console.error('Error retrieving occupation', error);
+    return res
+      .status(500)
+      .json({ error: 'Error retrieving occupation' });
+  }
 }

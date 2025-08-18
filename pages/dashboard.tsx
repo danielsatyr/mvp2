@@ -147,7 +147,7 @@ useEffect(() => {
 
       {/* Score y detalles */}
       <section className="bg-white p-6 rounded shadow space-y-4">
-        <h2 className="text-2xl">Tu puntuación: {profile?.score} puntos</h2>
+        <h2 className="text-2xl">Tu puntuación: {totalPoints} puntos</h2>
         <ul className="grid grid-cols-2 gap-4">
           <li><strong>Visado:</strong> {profile?.visaSubclass || "N/D"}</li>
           <li><strong>Ocupación ANZSCO:</strong> {profile?.occupation}</li>
@@ -183,6 +183,25 @@ useEffect(() => {
             <Radar name="Puntos" dataKey="value" fill="#8884d8" fillOpacity={0.6} />
           </RadarChart>
         </div>
+      </section>
+
+       {/* Rutas válidas */}
+      <section className="bg-white p-6 rounded shadow">
+        <h3 className="text-xl mb-4">Rutas válidas</h3>
+        <ul className="list-disc pl-6">
+          {nodes
+            .filter((n) => n.key.startsWith("summary:") && n.status === "ok")
+            .map((n) => {
+              const pw = nodes.find((x) => x.key === n.parent);
+              const st = pw ? nodes.find((x) => x.key === pw.parent) : undefined;
+              const visa = st ? nodes.find((x) => x.key === st.parent) : undefined;
+              return (
+                <li key={n.key}>
+                  {visa?.text || visa?.key} / {st?.text} / {pw?.text}
+                </li>
+              );
+            })}
+        </ul>
       </section>
 
       {/* Diagrama dinámico */}

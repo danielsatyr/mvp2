@@ -6,6 +6,8 @@ import {
   OccupationRow,
   UserProfile,
 } from "../types";
+import type { DecisionGraphDTO } from "../types/dto";
+
 
 import { statusFromRule } from "../utils/scoringHelpers";
 
@@ -126,7 +128,7 @@ function findVisaNodeKey(
 export function mapToGraphWithEligibility(
   baseGraph: { nodes: DiagramNode[]; links: DiagramLink[] },
   options: {
-    profile: any;
+    profile: UserProfile;
     selectedVisa?: "189" | "190" | "491";
     states?: string[];
     selectedState?: string;
@@ -209,4 +211,62 @@ export function mapToGraphWithEligibility(
   }
 
   return g;
+}
+
+/**
+ * Mapea un DecisionGraphDTO (nodos con parent/meta) a DiagramNode/DiagramLink
+ * evaluando reglas y puntajes.
+ */
+export function mapToGraph(
+  dto: DecisionGraphDTO,
+  profile: any,
+  breakdown: Breakdown
+): { nodes: DiagramNode[]; links: DiagramLink[] } {
+  const score = scoreFromBreakdown(breakdown);
+
+  const nodes: DiagramNode[] = dto.nodes.map((n) => ({
+    key: n.key,
+    text: n.title,
+    parent: n.parent || undefined,
+    status: "info",
+    isTreeExpanded: true,
+  }));
+
+  const links: DiagramLink[] = [];
+  dto.nodes.forEach((n) => {
+    if (n.parent) links.push({ from: n.parent, to: n.key });
+  });
+
+  // Ajustar nodo Start con puntaje
+  const startNode = nodes.find((n) => n.key === "start");
+  if (startNode) startNode.text = `Total: ${score} pts`;
+
+  // Estados de visas
+  for (const n of nodes) {
+    const m = n.key.match(/^visa:(189|190|491)$/);
+    if (m) {
+      n.status = visaStatus(m[1] as any, score);
+      n.isTreeExpanded = false;
+    }
+  }
+
+  // Resumen de reglas para cada pathway (nodo pw:... con meta.rules)
+  dto.nodes.forEach((n) => {
+    const rules = (n.meta as any)?.rules;
+    if (n.key.startsWith("pw:") && Array.isArray(rules)) {
+      const statuses = rules.map((r: any) => statusFromRule(profile, r));
+      const fails = statuses.filter((s) => s === "fail").length;
+      const warns = statuses.filter((s) => s === "warn").length;
+      const summaryKey = `summary:${n.key}`;
+      nodes.push({
+        key: summaryKey,
+        text: `Brechas: ${fails} fail / ${warns} warn`,
+        status: fails ? "fail" : warns ? "warn" : "ok",
+        parent: n.key,
+      });
+      links.push({ from: n.key, to: summaryKey });
+    }
+  });
+
+  return { nodes, links };
 }

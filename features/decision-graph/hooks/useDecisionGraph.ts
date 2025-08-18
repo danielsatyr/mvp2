@@ -1,16 +1,17 @@
 import useSWR from "swr";
 import { mapToGraphWithEligibility } from "../services/mapToGraph";
 import { useEligibilityCascader, CascaderState } from "./useEligibilityCascader";
-import type { DiagramNode, DiagramLink } from "../types";
+import type { DiagramNode, DiagramLink, UserProfile } from "../types";
 
 // Ajusta este tipo a tu modelo real si ya lo tienes en ../types
-type Profile = {
-  occupationId?: string;
+type Profile = Partial<UserProfile> & {
+  occupationId?: number;
   anzscoCode?: string;
   englishLevel?: string;
   points?: number;
-  userId?: number | string;
+  userId?: number;
   age?: number;
+
 };
 
 const fetcher = (url: string) =>
@@ -75,8 +76,22 @@ export function useDecisionGraph(profile: Profile, ui: CascaderState) {
   const baseGraph = { nodes: baseNodes, links: baseLinks };
 
   // ---- Extender con estados/pathways/reglas (Paso 4) ----
+
+ const profileForGraph: UserProfile & { points?: number } = {
+    userId: Number(profile.userId ?? 0),
+    age: profile.age ?? 0,
+    englishLevel: (profile.englishLevel as UserProfile["englishLevel"]) ?? "Competent",
+    workExperience_in: 0,
+    workExperience_out: 0,
+    education_qualification: "",
+    occupationId: Number(profile.occupationId ?? 0),
+    occupation_name: profile.anzscoCode ?? "",
+    points: profile.points,
+  };
+
+
   const graph = mapToGraphWithEligibility(baseGraph, {
-    profile,
+    profile: profileForGraph,
     selectedVisa,
     selectedState,
     selectedPathwayId,

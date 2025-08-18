@@ -17,92 +17,90 @@ model User {
 }
 
 model Occupation {
- id                  Int     @id @default(autoincrement())
-  occupationId        String  @unique
+  id                  Int       @id @default(autoincrement())
+  occupationId        String    @unique
   name                String
-  anzscoCode          String  @map("anzsco_code")
-  skillAssessmentBody String  @map("skill_assessment_body")
-  mltsslFlag          Boolean @map("mltssl_flag")
-  stsolFlag           Boolean @map("stsol_flag")
-  rolFlag             Boolean @map("rol_flag")
-  subclass190 Boolean @default(false) @map("190")
-  subclass189Pt       Boolean @default(false) @map("189 (PT)")
-  subclass186         Boolean @default(false) @map("186")
-  subclass491St       Boolean @default(false) @map("491(S/T)")
-  subclass491F        Boolean @default(false) @map("491 (F)")
-  subclass494         Boolean @default(false) @map("494")
-  subclass482         Boolean @default(false) @map("482")
-  subclass407         Boolean @default(false) @map("407")
-  subclass485         Boolean @default(false) @map("485")
-  skillLevelRequired  String? @map("Skill_Level_Required")
+  anzscoCode          String    @map("anzsco_code")
+  skillAssessmentBody String    @map("skill_assessment_body")
+  mltsslFlag          Boolean   @map("mltssl_flag")
+  stsolFlag           Boolean   @map("stsol_flag")
+  rolFlag             Boolean   @map("rol_flag")
+  subclass190         Boolean   @default(false) @map("190")
+  subclass189Pt       Boolean   @default(false) @map("189 (PT)")
+  subclass186         Boolean   @default(false) @map("186")
+  subclass491St       Boolean   @default(false) @map("491(S/T)")
+  subclass491F        Boolean   @default(false) @map("491 (F)")
+  subclass494         Boolean   @default(false) @map("494")
+  subclass482         Boolean   @default(false) @map("482")
+  subclass407         Boolean   @default(false) @map("407")
+  subclass485         Boolean   @default(false) @map("485")
+  skillLevelRequired  String?   @map("Skill_Level_Required")
   profiles            Profile[]
-
-}
+  }
 
 model Profile {
-  id                      Int      @id @default(autoincrement())
-  userId                  Int      @unique
-  visaSubclass            String   @default("189")
-  age                     Int      @default(0)
-  occupationId            String?  @map("occupation")
+  id                      Int         @id @default(autoincrement())
+  userId                  Int         @unique
+  visaSubclass            String      @default("189")
+  age                     Int         @default(0)
+  occupationId            String?     @map("occupation")
   occupation              Occupation? @relation(fields: [occupationId], references: [occupationId])
-  englishLevel            String   @default("")
-  workExperience_in       Int      @default(0)
-  workExperience_out      Int      @default(0)
-  nationality             String   @default("")
-  education_qualification String   @default("")
-  study_requirement       String   @default("")
-  regional_study          String   @default("")
-  professional_year       String   @default("")
-  natti                   String   @default("")
-  partner                 String   @default("")
-  nomination_sponsorship  String   @default("")
-  specialistQualification String?  @default("none")
-  score                   Int      @default(0)
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
-  user                    User     @relation(fields: [userId], references: [id])
+  englishLevel            String      @default("")
+  workExperience_in       Int         @default(0)
+  workExperience_out      Int         @default(0)
+  nationality             String      @default("")
+  education_qualification String      @default("")
+  study_requirement       String      @default("")
+  regional_study          String      @default("")
+  professional_year       String      @default("")
+  natti                   String      @default("")
+  partner                 String      @default("")
+  nomination_sponsorship  String      @default("")
+  specialistQualification String?     @default("none")
+  score                   Int         @default(0)
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+  user                    User        @relation(fields: [userId], references: [id])
 }
 
 model EligibilityFactors {
-  id                          Int      @id @default(autoincrement())
-  occupationId                String
-  anzscoCode                  String?
-  visa                        String
-  state                       String
-  pathway                     String?
-  englishLevelRequired        String?
-  workExperienceStateYears    Int?
-  studyInStateRequired        Boolean? @default(false)
+  id                       Int      @id @default(autoincrement())
+  occupationId             String
+  anzscoCode               String?
+  visa                     String
+  state                    String
+  pathway                  String?
+  englishLevelRequired     String?
+  workExperienceStateYears Int?
+  studyInStateRequired     Boolean? @default(false)
 
-  stateOccId                  String?
-  occupationName              String?
-  valueRaw                    String?
+  stateOccId     String?
+  occupationName String?
+  valueRaw       String?
 
-  minPointsState              Int?
-  streamName                  String?
-  visa190Flag                 Boolean?
-  visa491Flag                 Boolean?
+  minPointsState Int?
+  streamName     String?
+  visa190Flag    Boolean?
+  visa491Flag    Boolean?
 
   workExperienceState         Boolean?
   workExperienceOverseasYears Int?
   workExperienceDescription   String?
 
-  studyTimeStateRequired      Int?
-  studyInStateLevel           String?
+  studyTimeStateRequired Int?
+  studyInStateLevel      String?
 
-  jobOfferRequired            Boolean?
-  regionalStudyBonus          Boolean?
-  familySponsorship           Boolean?
-  familySponsorshipStateLoc   String?
-  residencyRequirement        String?
-  offshoreCondition           String?
-  sectorCritical              Boolean?
-  financialCapacity           Boolean?
-  financialCapacityValue      String?
-  otherRequirement            String?
-  offshore                    Boolean?
-
+  jobOfferRequired          Boolean?
+  regionalStudyBonus        Boolean?
+  familySponsorship         Boolean?
+  familySponsorshipStateLoc String?
+  residencyRequirement      String?
+  offshoreCondition         String?
+  sectorCritical            Boolean?
+  financialCapacity         Boolean?
+  financialCapacityValue    String?
+  otherRequirement          String?
+  offshore                  Boolean?
 
   @@index([occupationId, visa, state])
 }
