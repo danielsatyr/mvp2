@@ -1,48 +1,105 @@
+// features/decision-graph/hooks/useEligibilityCascader.ts
 import useSWR from "swr";
-
-const fetcher = (url: string) => fetch(url).then(r => {
-  if (!r.ok) throw new Error(`${r.status}`);
-  return r.json();
-});
 
 export type CascaderState = {
   selectedVisa?: "189" | "190" | "491";
-  selectedState?: string; // "VIC", "QLD", etc.
+  selectedState?: string;
   selectedPathwayId?: string;
 };
 
+type Input = {
+  occupationId?: number | null;
+  anzscoCode?: string | null;
+};
+
+type StateItem = { state: string; [k: string]: any };
+type PathwayItem = { pathwayId: string; prefix?: string; [k: string]: any };
+
+// ---- Fetchers via API endpoints ----
+const fetchStates = async (
+  anzscoCode?: string | null,
+  visa?: "189" | "190" | "491"
+): Promise<StateItem[]> => {
+  if (!anzscoCode || !visa) return [];
+  const res = await fetch(
+    `/api/eligibility/states?anzscoCode=${encodeURIComponent(
+      anzscoCode
+    )}&visa=${visa}`
+  );
+  if (!res.ok) throw new Error("Error fetching states");
+  const data = await res.json();
+  return Array.isArray(data) ? data : data.states ?? [];
+};
+
+const fetchPathways = async (
+  anzscoCode?: string | null,
+  visa?: "189" | "190" | "491",
+  state?: string
+): Promise<PathwayItem[]> => {
+  if (!anzscoCode || !visa || !state) return [];
+  const res = await fetch(
+    `/api/eligibility/pathways?anzscoCode=${encodeURIComponent(
+      anzscoCode
+    )}&visa=${visa}&state=${encodeURIComponent(state)}`
+  );
+  if (!res.ok) throw new Error("Error fetching pathways");
+  const data = await res.json();
+  return Array.isArray(data) ? data : data.pathways ?? [];
+};
+
+// ---- Main hook ----
 export function useEligibilityCascader(
-  baseParams: { occupationId?: number; anzscoCode?: string },
+  input: Input,
   ui: CascaderState
-) {
-  const q = new URLSearchParams();
-  if (baseParams.occupationId) q.set("occupationId", String(baseParams.occupationId));
-  if (baseParams.anzscoCode) q.set("anzscoCode", baseParams.anzscoCode);
+): {
+  states: StateItem[];
+  pathways: PathwayItem[];
+  loading: boolean;
+  error: any;
+} {
+  const anzsco = input?.anzscoCode ?? null;
+  const visa = ui?.selectedVisa ?? undefined;
+  const state = ui?.selectedState ?? undefined;
 
-  // Paso 2: estados (solo si hay visa seleccionada y != 189)
-  const statesKey =
-    ui.selectedVisa && ui.selectedVisa !== "189"
-      ? `/api/eligibility/states?visa=${ui.selectedVisa}&${q.toString()}`
-      : null;
-
-  const { data: states, error: statesError, isLoading: statesLoading } = useSWR<string[]>(
-    statesKey, fetcher
+  // STATES
+  const {
+    data: states,
+    error: statesError,
+    isLoading: statesLoading,
+  } = useSWR(
+    anzsco && visa ? ["elig-states", anzsco, visa] : null,
+    (_key, a: string, v: "189" | "190" | "491") => fetchStates(a, v),
+    { keepPreviousData: true }
   );
 
-  // Paso 3: pathways (solo si ya hay state + visa 190/491)
-  const pathwaysKey =
-    ui.selectedVisa && ui.selectedVisa !== "189" && ui.selectedState
-      ? `/api/eligibility/pathways?visa=${ui.selectedVisa}&state=${ui.selectedState}&${q.toString()}`
-      : null;
+  const selectedStateStillValid =
+    state && Array.isArray(states)
+      ? states.some((s: any) =>
+          typeof s === "object" && s !== null && "state" in s
+            ? String((s as any).state) === state
+            : String(s) === state
+        )
+      : false;
 
-  const { data: pathways, error: pathwaysError, isLoading: pathwaysLoading } = useSWR<any[]>(
-    pathwaysKey, fetcher
+  // PATHWAYS
+  const effectiveState = selectedStateStillValid ? state : undefined;
+  const {
+    data: pathways,
+    error: pathwaysError,
+    isLoading: pathwaysLoading,
+  } = useSWR(
+    anzsco && visa && effectiveState
+      ? ["elig-pathways", anzsco, visa, effectiveState]
+      : null,
+    (_key, a: string, v: "189" | "190" | "491", st: string) =>
+      fetchPathways(a, v, st),
+    { keepPreviousData: true }
   );
 
   return {
     states: states ?? [],
     pathways: pathways ?? [],
-    loading: statesLoading || pathwaysLoading,
+    loading: Boolean(statesLoading || pathwaysLoading),
     error: statesError || pathwaysError || null,
   };
 }

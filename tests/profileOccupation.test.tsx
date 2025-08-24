@@ -16,8 +16,8 @@ describe("ProfileForm occupation selection", () => {
 
   it("sends occupationId on submit", async () => {
     const occupations = [
-      { occupationId: "123", name: "Engineer" },
-      { occupationId: "456", name: "Teacher" },
+        { occupationId: "occ1", anzscoCode: "123", name: "Engineer" },
+      { occupationId: "occ2", anzscoCode: "456", name: "Teacher" },
     ];
 
     const fetchMock = vi
@@ -43,7 +43,7 @@ describe("ProfileForm occupation selection", () => {
     await waitFor(() => getByLabelText("Ocupación (ANZSCO Code)"));
 
     fireEvent.change(getByLabelText("Ocupación (ANZSCO Code)"), {
-      target: { value: "456" },
+       target: { value: "occ2" },
     });
 
     fireEvent.change(getByLabelText("Edad"), { target: { value: "30" } });
@@ -90,8 +90,8 @@ describe("ProfileForm occupation selection", () => {
     expect(fetchMock.mock.calls[1][0]).toBe("/api/profile");
     const sent = JSON.parse(fetchMock.mock.calls[1][1].body);
     expect(sent).toMatchObject({
-      occupationId: "456",
-      anzscoCode: "456",
+      occupationId: "occ2",
+      anzscoCode: "456", // 👈 Verifica que se envía el código ANZSCO
     });
   });
 });

@@ -5,6 +5,7 @@ import { Profile as ProfileModel } from "@prisma/client";
 
 interface Occupation {
   occupationId: string;
+  anzscoCode: string;
   name: string;
 }
 
@@ -57,10 +58,13 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
     setError(null);
     setLoading(true);
     try {
+        const selected = occupations.find(
+        (o) => o.occupationId === form.occupationId,
+      );
       const payload = {
         age: Number(form.edad),
-      occupationId: form.occupationId,
-      anzscoCode: form.occupationId,   // 👈 NUEVO: occupationId como código ANZSCO
+        occupationId: form.occupationId,
+        anzscoCode: selected?.anzscoCode ?? "",  // 👈 NUEVO: occupationId como código ANZSCO
         englishLevel: form.ingles,
         workExperience_in: Number(form.australianExp),
         workExperience_out: Number(form.overseasExp),
@@ -142,8 +146,7 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
               <p className="text-red-600">Error: {errorOcc}</p>
             ) : (
               <select
-
-             id="occupationId"
+               id="occupationId"
                 value={form.occupationId}
                 onChange={handleChange}
                 className="w-full border rounded px-2 py-1"
@@ -152,9 +155,11 @@ export default function ProfileForm({ initialProfile }: ProfileFormProps) {
                 <option value="">-- Selecciona --</option>
                 {occupations.map((o) => (
                   <option key={o.occupationId} value={o.occupationId}>
-                    {o.occupationId} – {o.name}
-                  </option> ))}
-                </select>
+                      {o.anzscoCode} – {o.name}
+                  </option>
+                ))}
+              </select>
+
               
             )}
           </div>

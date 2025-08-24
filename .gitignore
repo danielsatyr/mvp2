@@ -19,3 +19,6 @@ prisma/*.db-journal
 # misc
 .DS_Store
 *.log
+
+# Archivos locales
+*.tsbuildinfo

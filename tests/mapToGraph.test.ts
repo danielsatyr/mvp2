@@ -4,6 +4,8 @@ import type {
   Breakdown,
   OccupationRow,
   UserProfile,
+  DiagramNode,
+  DiagramLink,
 } from "../features/decision-graph/types";
 
 describe("mapToGraphMinimal", () => {
@@ -51,23 +53,50 @@ describe("mapToGraphMinimal", () => {
 
 describe("mapToGraphWithEligibility", () => {
   it("resume reglas y determina estado ok/fail", () => {
-    const base = {
+    const base: { nodes: DiagramNode[]; links: DiagramLink[] } = {
       nodes: [
-        { key:"Start", text:"Start", status:"info" },
-        { key:"elig-visas", text:"Visas", status:"info" },
-        { key:"visa-190", text:"190", status:"info" }
+
+        { key: "Start", text: "Start", status: "info" },
+        { key: "elig-visas", text: "Visas", status: "info" },
+        { key: "visa-190", text: "190", status: "info" },
       ],
-      links: [ { from:"Start", to:"elig-visas" }, { from:"elig-visas", to:"visa-190" } ]
+      links: [
+        { from: "Start", to: "elig-visas" },
+        { from: "elig-visas", to: "visa-190" },
+      ],
     };
+
+    const baseEmpty: { nodes: DiagramNode[]; links: DiagramLink[] } = { nodes: [], links: [] };
+    const g = mapToGraphWithEligibility(baseEmpty, {
+      profile: {} as UserProfile,
+    })!;
+
     const pathways = [
-      { pathwayId:"general", title:"General", rules:[{ field:"study_in_state", op:"==", value:true }], meta:{} }
+      { pathwayId:"general", title:"General", prefix:"Gen", rules:[{ field:"study_in_state", op:"==", value:true }], meta:{} }
     ];
-    const okProfile = { study_in_state:true };
-    const failProfile = { study_in_state:false };
-    const gOk = mapToGraphWithEligibility(base, { profile: okProfile, selectedVisa:"190", states:["VIC"], selectedState:"VIC", pathways });
-    const gFail = mapToGraphWithEligibility(base, { profile: failProfile, selectedVisa:"190", states:["VIC"], selectedState:"VIC", pathways });
+    const okProfile = { study_in_state: true } as unknown as UserProfile;
+    const failProfile = { study_in_state: false } as unknown as UserProfile;
+    const gOk = mapToGraphWithEligibility(base, {
+      profile: okProfile,
+      selectedVisa: "190",
+      states: ["VIC"],
+      selectedState: "VIC",
+      pathways,
+    })!;
+    const gFail = mapToGraphWithEligibility(base, {
+      profile: failProfile,
+      selectedVisa: "190",
+      states: ["VIC"],
+      selectedState: "VIC",
+      pathways,
+    })!;
+    const pwNode = gOk.nodes.find(n=>n.key === "pw:190:VIC:general");
+
     const key = "summary:pw:190:VIC:general";
-    expect(gOk.nodes.find(n=>n.key===key)?.status).toBe("ok");
-    expect(gFail.nodes.find(n=>n.key===key)?.status).toBe("fail");
+    expect(pwNode?.text).toBe("Gen");
+
+    expect(g.nodes.length).toBe(0);
+    expect(gOk.nodes.find((n) => n.key === key)?.status).toBe("ok");
+    expect(gFail.nodes.find((n) => n.key === key)?.status).toBe("fail");
   });
 });

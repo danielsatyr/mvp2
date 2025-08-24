@@ -1,78 +1,57 @@
+// pages/api/eligibility/states.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
 
-function normalizeQueryParam(v: string | string[] | undefined) {
-  return Array.isArray(v) ? v[0] : v;
-}
+// ⚠️ TODO (próximo paso): reemplazar MOCKS por consultas Prisma reales.
+// import { prisma } from "@/lib/prisma";
 
-const ALLOWED_VISAS = new Set(["189", "190", "491"]);
+const VALID_VISAS = new Set(["189", "190", "491"]);
 
-/**
- * GET /api/eligibility/states?visa=190&occupationId=... | &anzscoCode=...
- * Responde: ["VIC","QLD", ...]
- * - 400 si faltan parámetros o visa inválida
- * - 404 si la ocupación no existe
- */
+// Fallback mínimo para destrabar (mapea por ANZSCO + visa)
+const MOCK_STATES_BY_CODE: Record<string, Record<string, string[]>> = {
+  // ej: 263112 (ICT Project Manager)
+  "263112": {
+    "190": ["NSW", "VIC", "QLD"],
+    "491": ["SA", "TAS", "WA"],
+  },
+  // agrega más ANZSCO si lo necesitas para pruebas
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
-    res.setHeader("Allow", "GET");
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
-  const visa = normalizeQueryParam(req.query.visa);
-  const qOccupationId = normalizeQueryParam(req.query.occupationId);
-  const qAnzscoCode = normalizeQueryParam(req.query.anzscoCode);
-
-  if (!visa || (!qOccupationId && !qAnzscoCode)) {
-    return res.status(400).json({
-      error: "Debes enviar visa y (occupationId o anzscoCode)",
-    });
-  }
-  if (!ALLOWED_VISAS.has(visa)) {
-    return res.status(400).json({ error: "Visa inválida. Usa 189, 190 o 491" });
-  }
-
   try {
-    // 1) Resolver ocupación (igual patrón que Paso 1)
-    const whereOcc: Prisma.OccupationWhereInput = qOccupationId
-      ? { occupationId: String(qOccupationId) } // occupationId es String en tu schema
-      : { anzscoCode: String(qAnzscoCode) };
-
-    const occ = await prisma.occupation.findFirst({
-      where: whereOcc,
-      select: {
-        occupationId: true,
-        anzscoCode: true,
-      },
-    });
-
-    if (!occ) {
-      return res.status(404).json({ error: "Ocupación no encontrada" });
+    if (req.method !== "GET") {
+      res.setHeader("Allow", "GET");
+      return res.status(405).json({ error: "Method not allowed" });
     }
 
-    // 2) Buscar estados en EligibilityFactors para esa ocupación y visa
-    // IMPORTANTE: Ajusta estos nombres de campos si difieren en tu schema:
-    // - occupationId  (FK a Occupation)
-    // - visa          (string: "189" | "190" | "491")
-    // - state         (string: "VIC", "QLD", etc.)
-    const rows = await prisma.eligibilityFactors.findMany({
-      where: {
-        occupationId: occ.occupationId,
-        visa: visa, // <-- si tu campo se llama distinto (p.ej. visaSubclass), cámbialo aquí
-      },
-      select: { state: true },
-      orderBy: { state: "asc" },
-    });
+    const anzscoCode = String(req.query.anzscoCode ?? "").trim();
+    const visa = String(req.query.visa ?? "").trim();
 
-    // 3) Quitar nulos/duplicados y devolver array plano
-    const uniq = Array.from(
-      new Set(rows.map(r => r.state).filter((s): s is string => !!s && s.length > 0))
-    );
+    // Validaciones simples
+    if (!/^\d{6}$/.test(anzscoCode)) {
+      return res.status(400).json({ error: "Invalid anzscoCode (need 6 digits)" });
+    }
+    if (!VALID_VISAS.has(visa)) {
+      return res.status(400).json({ error: "Invalid visa (use 189|190|491)" });
+    }
 
-    return res.status(200).json(uniq);
-  } catch (err) {
+    // --- Próximo paso (cuando me pases esquema): consulta real con Prisma
+    // const rows = await prisma.stateOccupation.findMany({
+    //   where: { anzscoCode, visa },
+    //   select: { state: true },
+    // });
+    // const states = rows.map(r => ({ state: r.state }));
+    // if (states.length) return res.status(200).json(states);
+
+    // --- Fallback temporal (MOCK)
+    const states = MOCK_STATES_BY_CODE[anzscoCode]?.[visa] ?? [];
+    // Formato esperado por el hook: [{ state: "NSW" }, ...]
+    const payload = states.map((s) => ({ state: s }));
+
+    // Cache corto para dev (opcional)
+    res.setHeader("Cache-Control", "private, max-age=30");
+    return res.status(200).json(payload);
+  } catch (err: any) {
     console.error("GET /api/eligibility/states error:", err);
-    return res.status(500).json({ error: "Internal Server Error" });
+    return res.status(500).json({ error: "Internal error" });
   }
 }

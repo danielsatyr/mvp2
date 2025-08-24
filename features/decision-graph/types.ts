@@ -45,6 +45,7 @@ export interface EligibilityPathwayRule {
 export interface StatePathway {
   pathwayId: string;          // ej. "graduate", "work"
   title: string;              // "Graduate", "Work in State"
+  prefix?: string;            // texto corto para el grafo
   rules: EligibilityPathwayRule[];
 }
 
@@ -76,5 +77,7 @@ export interface DiagramNode {
   tooltip?: string;
   tooltipHtml?: string;
   status?: "ok" | "warn" | "fail" | "info";
+    parent?: string;
+
 }
 export interface DiagramLink { from: string; to: string; label?: string; key?: string; }

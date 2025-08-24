@@ -20,6 +20,7 @@
     "type-check": "tsc --noEmit",
     "prisma:generate": "prisma generate",
     "verify": "npm run clean && npm run type-check && npm run lint && prisma generate && next build"
+    
   },
   "dependencies": {
     "@headlessui/react": "^2.2.7",

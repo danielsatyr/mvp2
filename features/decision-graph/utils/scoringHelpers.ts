@@ -6,18 +6,19 @@ export function cmpEnglish(a?: string, b?: string) {
   const ia = ENGLISH_ORDER.indexOf(a as EnglishLevel);
   const ib = ENGLISH_ORDER.indexOf(b as EnglishLevel);
   if (ia < 0 || ib < 0) return 0;
-  return Math.sign(ia - ib); // <=0 cumple a>=b si resultado <=0
+  return Math.sign(ia - ib); // >=0 cumple a>=b
 }
 
 export function statusFromRule(
   profile: any,
   rule: { field: string; op: string; value: any }
-): "ok" | "warn" | "fail" {
+): "ok" | "warn" | "fail" | "info" {
+  if (rule.op === "info") return "info";
   switch (rule.field) {
     case "english":
       if (!profile?.englishLevel || !rule.value) return "warn";
-      // perfil debe ser >= requerido → ia >= ib → cmp <= 0
-      return cmpEnglish(profile.englishLevel, rule.value) <= 0 ? "ok" : "fail";
+      // perfil debe ser >= requerido → ia >= ib → cmp >= 0
+      return cmpEnglish(profile.englishLevel, rule.value) >= 0 ? "ok" : "fail";
 
     case "study_in_state":
     case "experience_state_required":
@@ -35,6 +36,13 @@ export function statusFromRule(
       if (typeof rule.value !== "number") return "warn";
       if (typeof profile?.points !== "number") return "warn";
       return profile.points >= rule.value ? "ok" : "fail";
+
+      case "experience_state_years":
+    case "experience_overseas_years":
+      if (typeof rule.value !== "number") return "warn";
+      const years = profile?.[rule.field];
+      if (typeof years !== "number") return "warn";
+      return years >= rule.value ? "ok" : "fail";
 
     case "study_in_state_level":
       // mismo criterio de orden si defines un ORDER para AQF; por ahora informativo
